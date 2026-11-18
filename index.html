@@ -138,6 +138,14 @@ textarea{min-height:120px;resize:vertical}
 .bub.sys{align-self:center;background:transparent;color:var(--muted);font-size:13px;font-style:italic;max-width:100%;text-align:center}
 .compose{border-top:1px solid var(--line);padding:12px;display:grid;gap:10px}
 .compose textarea{min-height:64px}
+.mic{display:inline-flex;align-items:center;gap:8px}
+.mic svg{width:18px;height:18px}
+.mic[aria-pressed="true"]{background:var(--hang);border-color:var(--hang);color:#fff}
+.mic[aria-pressed="true"] svg{animation:puls 1s ease-in-out infinite}
+@keyframes puls{50%{opacity:.35}}
+.voice{display:flex;gap:14px;flex-wrap:wrap;align-items:center;font-size:14px;color:var(--muted)}
+.voice label{display:inline-flex;gap:6px;align-items:center}
+.voice input{accent-color:var(--call);width:16px;height:16px}
 .empty{display:grid;place-items:center;text-align:center;color:var(--muted);padding:40px 20px;gap:8px}
 .rolkaart{border:1px dashed var(--muted);border-radius:var(--r);padding:14px;display:grid;gap:6px;background:var(--paper)}
 .rolkaart dt{font-weight:700;font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
@@ -248,6 +256,7 @@ textarea{min-height:120px;resize:vertical}
       <div id="sv-second-wrap" hidden><span class="eyebrow">De eigenaar reageert</span><div class="second" id="sv-second"></div></div>
       <label for="sv-ans" class="eyebrow">Jouw antwoord, zoals je het aan de telefoon zegt</label>
       <textarea id="sv-ans" placeholder="Knuffel… brug… counter… en twee concrete momenten."></textarea>
+      <div class="row"><button class="btn mic" id="sv-mic" type="button" aria-pressed="false" hidden><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11h-2z"/></svg><span>Spreek je antwoord in</span></button></div>
       <div class="row">
         <button class="btn go" id="sv-eval" type="button">Laat Claude beoordelen</button>
         <button class="btn" id="sv-model" type="button">Toon modelantwoord</button>
@@ -302,8 +311,14 @@ textarea{min-height:120px;resize:vertical}
         </div>
         <div class="compose">
           <textarea id="rs-input" placeholder="Wat zeg je? (Enter verstuurt, Shift+Enter voor een nieuwe regel)" disabled></textarea>
+          <div class="voice" id="rs-voice">
+            <label><input type="checkbox" id="rs-hf" checked> Handsfree bellen: na de eigenaar luistert de Belcoach meteen naar jou</label>
+            <label><input type="checkbox" id="rs-tts" checked> Eigenaar hardop laten spreken</label>
+            <span id="rs-voicenote"></span>
+          </div>
           <div class="row">
             <button class="btn go" id="rs-call" type="button" disabled>Bellen</button>
+            <button class="btn mic" id="rs-mic" type="button" aria-pressed="false" disabled hidden><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11h-2z"/></svg><span>Spreek</span></button>
             <button class="btn" id="rs-send" type="button" disabled>Zeg het</button>
             <button class="btn stop" id="rs-end" type="button" disabled>Ophangen en beoordelen</button>
             <button class="btn ghost" id="rs-stop" type="button" hidden>Stop</button>
@@ -640,6 +655,76 @@ $("#sv-follow").addEventListener("click", async () => {
 
 /* ---------- Rollenspel ---------- */
 const rs = { c: null, beurten: [], busy: false, live: false, start: 0, tick: null, ctl: null };
+
+/* ---------- Spraak (browser) ---------- */
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+const tts = "speechSynthesis" in window;
+const spraak = { rec: null, stemmen: [] };
+function laadStemmen(){ try { spraak.stemmen = speechSynthesis.getVoices().filter(v => /^nl/i.test(v.lang)); } catch { spraak.stemmen = []; } }
+if (tts) { laadStemmen(); speechSynthesis.addEventListener?.("voiceschanged", laadStemmen); }
+function kiesStem(g){
+  const st = spraak.stemmen; if (!st.length) return null;
+  const be = st.filter(v => /nl-BE/i.test(v.lang)), pool = be.length ? be : st;
+  const vrouw = /dena|ellen|claire|fenna|colette|hanna|lotte|female|vrouw/i, man = /arnaud|xander|maarten|frank|male|man\b/i;
+  return pool.find(v => (g === "v" ? vrouw : man).test(v.name)) || pool[0];
+}
+function spreek(tekst, g){
+  return new Promise(resolve => {
+    if (!tts || !$("#rs-tts").checked || !tekst) return resolve();
+    try {
+      speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(tekst);
+      const v = kiesStem(g); if (v) u.voice = v;
+      u.lang = v?.lang || "nl-BE"; u.rate = 1.05;
+      if (!v || !(g === "v" ? /dena|ellen|claire|fenna|colette|hanna|lotte|female/i : /arnaud|xander|maarten|frank|male/i).test(v.name)) u.pitch = g === "v" ? 1.15 : 0.85;
+      u.onend = u.onerror = () => resolve();
+      speechSynthesis.speak(u);
+    } catch { resolve(); }
+  });
+}
+function stopLuisteren(){ try { spraak.rec?.abort(); } catch {} spraak.rec = null; document.querySelectorAll(".mic").forEach(b => b.setAttribute("aria-pressed", "false")); }
+function luister(veld, knop){
+  return new Promise(resolve => {
+    if (!SR) return resolve("");
+    stopLuisteren();
+    const rec = new SR(); spraak.rec = rec;
+    rec.lang = "nl-BE"; rec.interimResults = true; rec.continuous = false; rec.maxAlternatives = 1;
+    const basis = veld.value ? veld.value.trim() + " " : "";
+    let finaal = "";
+    knop.setAttribute("aria-pressed", "true");
+    rec.onresult = e => {
+      let tussen = "";
+      for (let i = e.resultIndex; i < e.results.length; i++) { const t = e.results[i][0].transcript; if (e.results[i].isFinal) finaal += t; else tussen += t; }
+      veld.value = basis + finaal + tussen;
+    };
+    rec.onerror = e => { if (e.error === "not-allowed" || e.error === "service-not-allowed") $("#rs-voicenote").textContent = "Geef de browser toegang tot je microfoon om te spreken."; };
+    rec.onend = () => { knop.setAttribute("aria-pressed", "false"); if (spraak.rec === rec) spraak.rec = null; resolve(finaal.trim()); };
+    try { rec.start(); } catch { knop.setAttribute("aria-pressed", "false"); resolve(""); }
+  });
+}
+if (SR) {
+  $("#rs-mic").hidden = false; $("#sv-mic").hidden = false;
+} else {
+  $("#rs-hf").closest("label").hidden = true;
+  $("#rs-voicenote").textContent = "Spreken werkt in Chrome of Edge. In deze browser typ je je antwoord.";
+}
+if (!tts) $("#rs-tts").closest("label").hidden = true;
+$("#sv-mic").addEventListener("click", async () => {
+  if (spraak.rec) { stopLuisteren(); return; }
+  await luister($("#sv-ans"), $("#sv-mic"));
+});
+$("#rs-mic").addEventListener("click", async () => {
+  if (spraak.rec) { stopLuisteren(); return; }
+  if (!rs.live || rs.busy) return;
+  try { speechSynthesis.cancel(); } catch {}
+  const t = await luister($("#rs-input"), $("#rs-mic"));
+  if (t && rs.live && !rs.busy) send();
+});
+async function beurtVanBeller(){
+  if (!SR || !$("#rs-hf").checked || !rs.live || rs.busy) return;
+  const t = await luister($("#rs-input"), $("#rs-mic"));
+  if (t && rs.live && !rs.busy) send();
+}
 const LVL = {basis:"Basis", gemiddeld:"Gemiddeld", moeilijk:"Moeilijk", warm:"Warm gesprek"};
 function renderCases(){
   $("#rs-cases").replaceChildren(...CASES.map(c => {
@@ -671,9 +756,9 @@ function pickCase(c){
 function bubble(cls, text){ const b = el("div", {class:"bub " + cls, text}); $("#rs-chat").append(b); $("#rs-chat").scrollTop = $("#rs-chat").scrollHeight; return b; }
 function setLive(on){
   rs.live = on;
-  $("#rs-input").disabled = !on; $("#rs-send").disabled = !on;
+  $("#rs-input").disabled = !on; $("#rs-send").disabled = !on; $("#rs-mic").disabled = !on;
   $("#rs-end").disabled = !on;
-  $("#rs-call").disabled = on || !code || !rs.c;
+  $("#rs-call").disabled = on || !session || !rs.c;
   $("#rs-call").textContent = rs.beurten.length ? "Opnieuw bellen" : "Bellen";
 }
 function clock(){ const s = Math.floor((Date.now() - rs.start) / 1000); $("#rs-clock").textContent = `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`; $("#rs-clock").classList.toggle("late", s >= 300); }
@@ -685,7 +770,8 @@ async function ownerTurn(){
     const r = await api("eigenaar", { case: rs.c.id, beurten: rs.beurten }, rs.ctl.signal);
     b.textContent = r.tekst;
     rs.beurten.push({ wie: "eigenaar", tekst: r.tekst });
-    if (r.einde) { bubble("sys", "De eigenaar heeft ingehaakt."); endCall(true); }
+    if (r.einde) { await spreek(r.tekst, rs.c.g); bubble("sys", "De eigenaar heeft ingehaakt."); endCall(true); }
+    else { rs.busy = false; await spreek(r.tekst, rs.c.g); beurtVanBeller(); }
   } catch (e) {
     b.remove();
     if (rs.beurten.length && rs.beurten[rs.beurten.length - 1].wie === "beller") {
@@ -700,7 +786,7 @@ async function ownerTurn(){
   }
 }
 $("#rs-call").addEventListener("click", async () => {
-  if (!code || !rs.c) return;
+  if (!session || !rs.c) return;
   rs.beurten = []; $("#rs-chat").replaceChildren(); $("#rs-score").hidden = true;
   bubble("sys", "De telefoon gaat over…");
   rs.start = Date.now(); clearInterval(rs.tick); rs.tick = setInterval(clock, 1000); clock();
@@ -719,6 +805,7 @@ $("#rs-input").addEventListener("keydown", e => { if (e.key === "Enter" && !e.sh
 $("#rs-stop").addEventListener("click", () => rs.ctl?.abort());
 $("#rs-end").addEventListener("click", () => { if (rs.busy) rs.ctl?.abort(); if (rs.live) bubble("sys", "Je hebt opgehangen."); endCall(true); });
 async function endCall(evaluate){
+  stopLuisteren(); try { speechSynthesis.cancel(); } catch {}
   clearInterval(rs.tick); setLive(false);
   // een onbeantwoorde laatste beurt van de beller hoort niet in de beoordeling
   if (rs.beurten.length && rs.beurten[rs.beurten.length - 1].wie === "beller" && rs.beurten.length % 2 === 0) rs.beurten.pop();
