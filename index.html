@@ -384,19 +384,36 @@ textarea{min-height:120px;resize:vertical}
 <!-- AANMELDEN -->
 <section class="view" id="v-toegang" hidden>
   <div style="display:grid;gap:6px">
-    <span class="eyebrow">Enkel voor deelnemers van de opleiding</span>
+    <span class="eyebrow">Enkel voor Huyzen-medewerkers</span>
     <h2 id="tg-title">Aanmelden</h2>
-    <p class="lead small" id="tg-lead">Vul het e-mailadres in waarmee je lesgever je uitnodigde. Je krijgt een mail met een link om aan te melden; een wachtwoord heb je niet nodig.</p>
+    <p class="lead small" id="tg-lead">Meld je aan met je @huyzen.be-adres. Nog geen account? Maak er zelf een aan.</p>
   </div>
-  <form class="sheet gate" id="tg-form" autocomplete="on">
-    <label for="tg-mail" class="eyebrow">E-mailadres</label>
-    <input type="email" id="tg-mail" placeholder="voornaam@huyzen.be" autocomplete="email">
-    <div class="row"><button class="btn go" type="submit" id="tg-send">Stuur me een aanmeldlink</button></div>
-    <p class="small muted" id="tg-status"></p>
-  </form>
+  <div id="tg-out-view" style="display:grid;gap:14px">
+    <div class="seg" role="group" aria-label="Aanmelden of account maken">
+      <button type="button" id="tg-tab-in" aria-pressed="true">Aanmelden</button>
+      <button type="button" id="tg-tab-new" aria-pressed="false">Account maken</button>
+    </div>
+    <form class="sheet gate" id="tg-form" autocomplete="on">
+      <div id="tg-naam-wrap" hidden style="display:grid;gap:6px">
+        <label for="tg-naam" class="eyebrow">Voor- en achternaam</label>
+        <input type="text" id="tg-naam" autocomplete="name" placeholder="Voornaam Achternaam">
+      </div>
+      <label for="tg-mail" class="eyebrow">E-mailadres</label>
+      <input type="email" id="tg-mail" placeholder="voornaam@huyzen.be" autocomplete="email" required>
+      <label for="tg-pw" class="eyebrow">Wachtwoord</label>
+      <input type="password" id="tg-pw" autocomplete="current-password" minlength="8" required>
+      <div class="row"><button class="btn go" type="submit" id="tg-send">Aanmelden</button></div>
+      <p class="small muted" id="tg-status">Wachtwoord vergeten? Vraag je lesgever om het opnieuw in te stellen.</p>
+    </form>
+  </div>
   <div class="sheet gate" id="tg-in" hidden>
     <p>Aangemeld als <b id="tg-who"></b>.</p>
-    <div class="row"><button class="btn" type="button" id="tg-out">Afmelden</button></div>
+    <form id="tg-pwform" style="display:grid;gap:8px" autocomplete="on">
+      <label for="tg-newpw" class="eyebrow">Nieuw wachtwoord (minstens 8 tekens)</label>
+      <input type="password" id="tg-newpw" autocomplete="new-password" minlength="8">
+      <div class="row"><button class="btn" type="submit">Wachtwoord opslaan</button><button class="btn ghost" type="button" id="tg-out">Afmelden</button></div>
+      <p class="small muted" id="tg-pwstatus"></p>
+    </form>
   </div>
 </section>
 <!-- GROEP (enkel lesgever) -->
@@ -461,8 +478,8 @@ function updateAI(){
   $("#nav-groep").hidden = profiel?.rol !== "lesgever";
   $("#ai-note").replaceChildren(on
     ? "Je bent aangemeld. Snelvuur, rollenspel en beoordeling gebruiken Claude, en je scores worden bewaard."
-    : el("span", {}, "Snelvuur werkt altijd, met het modelantwoord en een zelfcheck. Voor de feedback van Claude, het rollenspel en het bewaren van je scores moet je ", el("a", {href:"#toegang", text:"aanmelden"}), "."));
-  $("#tg-form").hidden = on; $("#tg-in").hidden = !on;
+    : el("span", {}, "Snelvuur werkt altijd, met het modelantwoord en een zelfcheck. Voor de feedback van Claude, het rollenspel en het bewaren van je scores ", el("a", {href:"#toegang", text:"meld je aan"}), " met je @huyzen.be-adres."));
+  $("#tg-out-view").hidden = on; $("#tg-in").hidden = !on;
   $("#tg-title").textContent = on ? "Je bent aangemeld" : "Aanmelden";
   $("#tg-who").textContent = session?.user?.email || "";
   $("#vg-reset").parentElement.hidden = on;
@@ -478,15 +495,48 @@ if (sb) {
   session = s0; await laadProfiel();
   sb.auth.onAuthStateChange(async (_e, s1) => { session = s1; await laadProfiel(); updateAI(); route(); });
 }
+let nieuwAccount = false;
+function zetTab(nieuw){
+  nieuwAccount = nieuw;
+  $("#tg-tab-in").setAttribute("aria-pressed", nieuw ? "false" : "true");
+  $("#tg-tab-new").setAttribute("aria-pressed", nieuw ? "true" : "false");
+  $("#tg-naam-wrap").hidden = !nieuw;
+  $("#tg-send").textContent = nieuw ? "Account maken" : "Aanmelden";
+  $("#tg-pw").autocomplete = nieuw ? "new-password" : "current-password";
+  $("#tg-status").textContent = nieuw ? "Kies een wachtwoord van minstens 8 tekens. Enkel @huyzen.be-adressen kunnen een account maken." : "Wachtwoord vergeten? Vraag je lesgever om het opnieuw in te stellen.";
+}
+$("#tg-tab-in").addEventListener("click", () => zetTab(false));
+$("#tg-tab-new").addEventListener("click", () => zetTab(true));
 $("#tg-form").addEventListener("submit", async e => {
-  e.preventDefault();
-  const mail = $("#tg-mail").value.trim(); if (!mail || !sb) return;
+  e.preventDefault(); if (!sb) return;
+  const mail = $("#tg-mail").value.trim().toLowerCase(), pw = $("#tg-pw").value, naam = $("#tg-naam").value.trim();
+  if (nieuwAccount && !mail.endsWith("@huyzen.be")) { $("#tg-status").textContent = "Gebruik je e-mailadres van Huyzen (@huyzen.be)."; return; }
+  if (nieuwAccount && naam.length < 2) { $("#tg-status").textContent = "Vul je naam in, zodat je lesgever weet wie je bent."; return; }
+  if (pw.length < 8) { $("#tg-status").textContent = "Je wachtwoord moet minstens 8 tekens hebben."; return; }
   $("#tg-send").disabled = true; $("#tg-status").textContent = "Even geduld…";
-  const { error } = await sb.auth.signInWithOtp({ email: mail, options: { shouldCreateUser: false, emailRedirectTo: location.origin } });
+  const { data: res, error } = nieuwAccount
+    ? await sb.auth.signUp({ email: mail, password: pw, options: { data: { naam } } })
+    : await sb.auth.signInWithPassword({ email: mail, password: pw });
   $("#tg-send").disabled = false;
-  $("#tg-status").textContent = error
-    ? "Dit e-mailadres is niet uitgenodigd, of er ging iets mis. Vraag je lesgever om je uit te nodigen."
-    : "Kijk in je mailbox (ook bij spam) en klik op de link om aan te melden.";
+  if (error) {
+    const m = String(error.message || "");
+    $("#tg-status").textContent = /already registered|already exists/i.test(m) ? "Er bestaat al een account met dit adres. Meld je aan."
+      : /invalid login|invalid credentials/i.test(m) ? "E-mailadres of wachtwoord klopt niet."
+      : /database error|huyzen/i.test(m) ? "Enkel e-mailadressen van Huyzen (@huyzen.be) kunnen een account maken."
+      : /password/i.test(m) ? "Kies een sterker wachtwoord van minstens 8 tekens."
+      : "Er ging iets mis. Probeer opnieuw.";
+    return;
+  }
+  if (nieuwAccount && !res?.session) { $("#tg-status").textContent = "Je account is gemaakt. Meld je nu aan met je e-mailadres en wachtwoord."; zetTab(false); return; }
+  $("#tg-pw").value = ""; location.hash = "start";
+});
+$("#tg-pwform").addEventListener("submit", async e => {
+  e.preventDefault();
+  const pw = $("#tg-newpw").value;
+  if (pw.length < 8) { $("#tg-pwstatus").textContent = "Minstens 8 tekens."; return; }
+  const { error } = await sb.auth.updateUser({ password: pw });
+  $("#tg-pwstatus").textContent = error ? "Opslaan lukte niet. Probeer opnieuw." : "Je nieuwe wachtwoord is opgeslagen.";
+  if (!error) $("#tg-newpw").value = "";
 });
 $("#tg-out").addEventListener("click", async () => { await sb?.auth.signOut(); location.hash = "start"; });
 
