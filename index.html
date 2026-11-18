@@ -1,0 +1,772 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Belcoach Prospectie</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Source+Sans+3:wght@400;600;700&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+/* Layout: a phone-desk tool. Top bar with mode tabs; each mode is one working surface (index card, call screen, cheat sheet, logbook). */
+:root{
+  --paper:#F3F6F4; --card:#FFFFFF; --ink:#16201C; --muted:#5A6862; --line:#D5DDD8; --soft:#E8EEEA;
+  --call:#1C7A52; --call-ink:#FFFFFF; --call-soft:#DDF0E6;
+  --hang:#B93E2B; --hang-soft:#F7E1DC;
+  --signal:#C98A12; --signal-soft:#F8EDD3;
+  --display:"Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --body:"Source Sans 3", "Segoe UI", system-ui, sans-serif;
+  --mono:"JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --r:10px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --paper:#0F1513; --card:#17201C; --ink:#E6EEE9; --muted:#9AA9A2; --line:#2A3632; --soft:#1F2a26;
+  --call:#3DBA82; --call-ink:#0B1410; --call-soft:#173327;
+  --hang:#EE6E58; --hang-soft:#3A1E19;
+  --signal:#F0BE55; --signal-soft:#3A2F14; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --paper:#0F1513; --card:#17201C; --ink:#E6EEE9; --muted:#9AA9A2; --line:#2A3632; --soft:#1F2a26;
+  --call:#3DBA82; --call-ink:#0B1410; --call-soft:#173327;
+  --hang:#EE6E58; --hang-soft:#3A1E19;
+  --signal:#F0BE55; --signal-soft:#3A2F14; color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0}img{max-width:100%}
+.aistate{font-weight:600;font-size:14px;text-decoration:none;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:5px 11px}
+.aistate.on{color:var(--call);border-color:var(--call);background:var(--call-soft)}
+.gate{display:grid;gap:12px;max-width:460px}
+[hidden]{display:none!important}
+html,body{background:var(--paper)}
+body{color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.5}
+.wrap{max-width:1080px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 48px}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--paper)}
+header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--paper);border-bottom:1px solid var(--line)}
+.topin{max-width:1080px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:12px;display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:10px;font-family:var(--display);font-weight:700;font-size:20px;letter-spacing:-.01em}
+.brand .dot{width:28px;height:28px;border-radius:50%;background:var(--call);display:grid;place-items:center;color:var(--call-ink)}
+nav.tabs{display:flex;gap:4px;flex-wrap:wrap;margin-left:auto}
+nav.tabs a{font-weight:600;color:var(--muted);text-decoration:none;padding:6px 12px;border-radius:999px;font-size:15px}
+nav.tabs a[aria-current="page"]{background:var(--ink);color:var(--paper)}
+nav.tabs a:focus-visible,button:focus-visible,textarea:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--call);outline-offset:2px}
+h1,h2,h3{font-family:var(--display);letter-spacing:-.015em;text-wrap:balance;margin:0}
+h1{font-size:clamp(28px,4.4vw,40px);line-height:1.1}
+h2{font-size:24px;line-height:1.2}
+h3{font-size:18px;line-height:1.25}
+p{margin:0}
+.eyebrow{font-size:12px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+.lead{color:var(--muted);max-width:62ch;font-size:17px}
+section.view{display:grid;gap:24px;padding-top:28px}
+.btn{font:600 15px/1 var(--body);border:1px solid var(--line);background:var(--card);color:var(--ink);padding:11px 16px;border-radius:999px;cursor:pointer;display:inline-flex;gap:8px;align-items:center;min-height:42px}
+.btn:hover{border-color:var(--muted)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn.go{background:var(--call);border-color:var(--call);color:var(--call-ink)}
+.btn.stop{background:var(--hang);border-color:var(--hang);color:#fff}
+.btn.ghost{background:transparent}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.muted{color:var(--muted)}
+.small{font-size:14px}
+.pill{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:3px 9px;border-radius:999px;background:var(--soft);color:var(--muted)}
+.pill.basis{background:var(--call-soft);color:var(--call)}
+.pill.gemiddeld{background:var(--signal-soft);color:var(--signal)}
+.pill.moeilijk{background:var(--hang-soft);color:var(--hang)}
+.pill.warm{background:var(--signal-soft);color:var(--signal)}
+.note{border:1px solid var(--line);background:var(--card);border-radius:var(--r);padding:12px 14px;font-size:15px;color:var(--muted)}
+.note.warn{border-color:var(--signal);background:var(--signal-soft);color:var(--ink)}
+
+/* Start */
+.modes{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
+.mode{display:grid;gap:8px;align-content:start;text-decoration:none;color:inherit;background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:18px}
+.mode:hover{border-color:var(--muted)}
+.mode .k{font-family:var(--mono);font-size:13px;color:var(--call);font-weight:700}
+.drill{display:grid;gap:10px;background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:18px}
+.drill ol{margin:0;padding-left:22px;display:grid;gap:6px}
+
+/* Snelvuur */
+.sv{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:20px;align-items:start}
+@media (max-width:820px){.sv{grid-template-columns:1fr}}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:999px;overflow:hidden;background:var(--card);flex-wrap:wrap}
+.seg button{font:600 14px var(--body);border:0;background:transparent;color:var(--muted);padding:9px 14px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
+.indexcard{position:relative;background:var(--card);border:1px solid var(--line);border-radius:6px;padding:22px 22px 26px;display:grid;gap:14px;
+  background-image:repeating-linear-gradient(to bottom,transparent 0,transparent 31px,var(--soft) 31px,var(--soft) 32px);background-position:0 70px}
+.indexcard::before{content:"";position:absolute;left:0;right:0;top:56px;border-top:2px solid var(--hang);opacity:.55}
+.cardhead{display:flex;justify-content:space-between;align-items:center;gap:10px;min-height:22px}
+.cardno{font-family:var(--mono);font-size:13px;color:var(--muted)}
+.objection{font-family:var(--display);font-weight:700;font-size:clamp(24px,3.6vw,34px);line-height:1.15;padding-top:18px}
+.timer{display:flex;align-items:center;gap:14px}
+.ring{--p:1;width:76px;height:76px;border-radius:50%;background:conic-gradient(var(--signal) calc(var(--p)*360deg),var(--soft) 0);display:grid;place-items:center;flex:none}
+.ring span{width:60px;height:60px;border-radius:50%;background:var(--card);display:grid;place-items:center;font-family:var(--mono);font-weight:700;font-size:22px;font-variant-numeric:tabular-nums}
+.ring.late{background:conic-gradient(var(--hang) calc(var(--p)*360deg),var(--soft) 0)}
+textarea,input[type=text],select{font:16px/1.45 var(--body);color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px;width:100%}
+textarea{min-height:120px;resize:vertical}
+.hint{border-left:3px solid var(--call);background:var(--call-soft);padding:10px 14px;border-radius:0 var(--r) var(--r) 0;display:grid;gap:6px;font-size:15px}
+.hint b{font-weight:700}
+.steps{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+@media (max-width:520px){.steps{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.step{border:1px solid var(--line);border-radius:var(--r);padding:10px;display:grid;gap:4px;background:var(--card);min-width:0}
+.step .nm{font-weight:700;display:flex;gap:6px;align-items:center}
+.step .ex{font-size:13px;color:var(--muted)}
+.step.ok{border-color:var(--call);background:var(--call-soft)}
+.step.no{border-color:var(--hang);background:var(--hang-soft)}
+.mark{font-family:var(--mono);font-weight:700}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:16px;display:grid;gap:12px}
+.selfcheck label{display:flex;gap:10px;align-items:flex-start;padding:6px 0;border-bottom:1px solid var(--soft)}
+.selfcheck label:last-child{border-bottom:0}
+.selfcheck input{width:18px;height:18px;margin-top:3px;accent-color:var(--call)}
+.thinking{color:var(--muted);font-style:italic}
+.second{border:1px dashed var(--signal);background:var(--signal-soft);border-radius:var(--r);padding:12px 14px;font-family:var(--display);font-weight:600;font-size:20px}
+
+/* Rollenspel */
+.rs{display:grid;grid-template-columns:minmax(0,320px) minmax(0,1fr);gap:20px;align-items:start}
+@media (max-width:860px){.rs{grid-template-columns:1fr}}
+.cases{display:grid;gap:8px}
+.case{all:unset;box-sizing:border-box;cursor:pointer;display:grid;gap:4px;background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px}
+.case:hover{border-color:var(--muted)}
+.case[aria-pressed="true"]{border-color:var(--call);box-shadow:inset 3px 0 0 var(--call)}
+.case .t{font-weight:700}
+.case .m{display:flex;gap:8px;align-items:center;font-size:13px;color:var(--muted)}
+.phone{background:var(--card);border:1px solid var(--line);border-radius:18px;display:grid;grid-template-rows:auto 1fr auto;min-height:540px;overflow:hidden}
+.phead{padding:14px 16px;border-bottom:1px solid var(--line);display:grid;gap:6px}
+.phead .who{display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap}
+.clock{font-family:var(--mono);font-variant-numeric:tabular-nums;font-weight:700}
+.clock.late{color:var(--hang)}
+.known{font-size:14px;color:var(--muted)}
+.chat{padding:16px;display:flex;flex-direction:column;gap:10px;overflow-y:auto;max-height:56vh;min-height:260px}
+.bub{max-width:82%;padding:10px 13px;border-radius:14px;font-size:16px;white-space:pre-wrap;overflow-wrap:anywhere}
+.bub.e{align-self:flex-start;background:var(--soft);border-bottom-left-radius:4px}
+.bub.b{align-self:flex-end;background:var(--call);color:var(--call-ink);border-bottom-right-radius:4px}
+.bub.sys{align-self:center;background:transparent;color:var(--muted);font-size:13px;font-style:italic;max-width:100%;text-align:center}
+.compose{border-top:1px solid var(--line);padding:12px;display:grid;gap:10px}
+.compose textarea{min-height:64px}
+.empty{display:grid;place-items:center;text-align:center;color:var(--muted);padding:40px 20px;gap:8px}
+.rolkaart{border:1px dashed var(--muted);border-radius:var(--r);padding:14px;display:grid;gap:6px;background:var(--paper)}
+.rolkaart dt{font-weight:700;font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.rolkaart dd{margin:0 0 6px}
+.score{display:grid;gap:14px}
+.total{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.total .n{font-family:var(--mono);font-weight:700;font-size:40px;font-variant-numeric:tabular-nums}
+.crit{width:100%;border-collapse:collapse;font-size:15px}
+.crit td{padding:8px 6px;border-bottom:1px solid var(--soft);vertical-align:top}
+.crit td.s{white-space:nowrap;font-family:var(--mono);font-weight:700;width:64px}
+.dots{display:inline-flex;gap:3px}
+.dots i{width:10px;height:10px;border-radius:50%;background:var(--soft);display:inline-block}
+.dots i.on{background:var(--call)}
+.tablewrap{overflow-x:auto}
+
+/* Spiekbrief */
+.cheat{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px}
+.sheet{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:18px;display:grid;gap:10px;align-content:start}
+.sheet ol,.sheet ul{margin:0;padding-left:20px;display:grid;gap:6px}
+.phase{display:grid;grid-template-columns:96px minmax(0,1fr);gap:10px;padding:8px 0;border-bottom:1px solid var(--soft)}
+.phase:last-child{border-bottom:0}
+.phase b{font-family:var(--display)}
+.q{font-style:italic}
+.matrix{width:100%;border-collapse:collapse;font-size:14px;min-width:760px}
+.matrix th{text-align:left;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);padding:8px;border-bottom:2px solid var(--line)}
+.matrix td{padding:8px;border-bottom:1px solid var(--soft);vertical-align:top}
+.matrix td:first-child{font-weight:700;width:22%}
+
+/* Voortgang */
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}
+.tile{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:14px;display:grid;gap:2px}
+.tile .v{font-family:var(--mono);font-size:28px;font-weight:700;font-variant-numeric:tabular-nums}
+.log{width:100%;border-collapse:collapse;font-size:15px;min-width:520px}
+.log th{text-align:left;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);padding:8px;border-bottom:2px solid var(--line)}
+.log td{padding:8px;border-bottom:1px solid var(--soft);font-variant-numeric:tabular-nums}
+.bar{height:8px;border-radius:999px;background:var(--soft);overflow:hidden;min-width:80px}
+.bar i{display:block;height:100%;background:var(--call)}
+.bar i.weak{background:var(--hang)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+
+<header class="top"><div class="topin">
+  <div class="brand"><span class="dot" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M6.6 10.8a15.1 15.1 0 0 0 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1A17 17 0 0 1 3 4c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.3 0 .7-.2 1l-2.3 2.2z"/></svg></span>Belcoach Prospectie</div>
+  <a href="#toegang" id="ai-state" class="aistate">Aanmelden</a>
+  <nav class="tabs" aria-label="Onderdelen">
+    <a href="#start" data-r="start">Start</a>
+    <a href="#snelvuur" data-r="snelvuur">Snelvuur</a>
+    <a href="#rollenspel" data-r="rollenspel">Rollenspel</a>
+    <a href="#spiekbrief" data-r="spiekbrief">Spiekbrief</a>
+    <a href="#voortgang" data-r="voortgang">Voortgang</a>
+    <a href="#groep" data-r="groep" id="nav-groep" hidden>Groep</a>
+  </nav>
+</div></header>
+
+<main class="wrap">
+
+<!-- START -->
+<section class="view" id="v-start">
+  <div style="display:grid;gap:10px">
+    <span class="eyebrow">Oefenen na module 3 · prospectie</span>
+    <h1>Bellen leer je door te bellen</h1>
+    <p class="lead">Oefen hier tussen de sessies door: bezwaren ombuigen tegen de klok, volledige belgesprekken met Claude als eigenaar, en het belscript als spiekbrief naast je telefoon. Elk gesprek wordt beoordeeld met dezelfde observatiechecklist als in de groep.</p>
+  </div>
+  <div class="modes">
+    <a class="mode" href="#snelvuur"><span class="k">5 min</span><h3>Bezwaren-snelvuur</h3><p class="muted small">Trek een bezwaarkaart, antwoord binnen 30 seconden met knuffel – brug – counter – afspraak en krijg meteen feedback per stap.</p></a>
+    <a class="mode" href="#rollenspel"><span class="k">5–10 min</span><h3>Rollenspel</h3><p class="muted small">12 cases, van “ik probeer eerst zelf” tot de wantrouwige eigenaar. Claude speelt de eigenaar met een verborgen bezwaar en scoort je gesprek op 20.</p></a>
+    <a class="mode" href="#spiekbrief"><span class="k">altijd</span><h3>Spiekbrief</h3><p class="muted small">Belscript in 5 fasen, de 7 gouden regels en de bezwarenmatrix: houd hem open tijdens je belblok.</p></a>
+  </div>
+  <div class="drill">
+    <span class="eyebrow">Dagelijkse opwarmer · 10 minuten vóór je belblok</span>
+    <ol>
+      <li>Zeg het belscript één keer luidop, van “wie” tot “bevestiging” (<a href="#spiekbrief">spiekbrief</a>).</li>
+      <li>Doe 3 kaarten <a href="#snelvuur">snelvuur</a> in ronde 2: zonder matrix, in eigen woorden.</li>
+      <li>Speel één <a href="#rollenspel">rollenspel</a> en noteer je score in je werkblad.</li>
+      <li>Bel daarna meteen: je eerste echte telefoon is na de opwarmer het makkelijkst.</li>
+    </ol>
+  </div>
+  <p class="note" id="ai-note">Snelvuur werkt altijd, met het modelantwoord en een zelfcheck. De feedback van Claude en het rollenspel gebruiken je eigen Claude-account; bij de eerste keer vraagt de pagina je toestemming.</p>
+</section>
+
+<!-- SNELVUUR -->
+<section class="view" id="v-snelvuur" hidden>
+  <div class="row" style="justify-content:space-between;align-items:flex-end">
+    <div style="display:grid;gap:6px">
+      <span class="eyebrow">Oefening 6 · niveau 2</span>
+      <h2>Bezwaren-snelvuur</h2>
+    </div>
+    <div class="seg" role="group" aria-label="Ronde">
+      <button type="button" data-ronde="1" aria-pressed="false">Ronde 1 · met matrix</button>
+      <button type="button" data-ronde="2" aria-pressed="true">Ronde 2 · eigen woorden</button>
+      <button type="button" data-ronde="3" aria-pressed="false">Ronde 3 · tweede bezwaar</button>
+    </div>
+  </div>
+  <div class="sv">
+    <div style="display:grid;gap:14px;min-width:0">
+      <div class="indexcard">
+        <div class="cardhead"><span class="cardno" id="sv-no">Kaart 1 / 20</span><span class="pill" id="sv-set">Standaard</span></div>
+        <div class="objection" id="sv-obj">“Ik probeer het eerst zelf.”</div>
+      </div>
+      <div class="hint" id="sv-hint" hidden>
+        <span class="eyebrow">Matrix</span>
+        <div><b>Knuffel</b> · <span id="h-k"></span></div>
+        <div><b>Brug</b> · <span id="h-b"></span></div>
+        <div><b>Counter + afspraak</b> · <span id="h-c"></span></div>
+      </div>
+      <div id="sv-second-wrap" hidden><span class="eyebrow">De eigenaar reageert</span><div class="second" id="sv-second"></div></div>
+      <label for="sv-ans" class="eyebrow">Jouw antwoord, zoals je het aan de telefoon zegt</label>
+      <textarea id="sv-ans" placeholder="Knuffel… brug… counter… en twee concrete momenten."></textarea>
+      <div class="row">
+        <button class="btn go" id="sv-eval" type="button">Laat Claude beoordelen</button>
+        <button class="btn" id="sv-model" type="button">Toon modelantwoord</button>
+        <button class="btn" id="sv-follow" type="button" hidden>Eigenaar reageert</button>
+        <button class="btn ghost" id="sv-next" type="button">Nieuwe kaart →</button>
+      </div>
+    </div>
+    <div style="display:grid;gap:14px;min-width:0">
+      <div class="panel">
+        <div class="timer">
+          <div class="ring" id="sv-ring"><span id="sv-sec">30</span></div>
+          <div style="display:grid;gap:6px">
+            <b>30 seconden per bezwaar</b>
+            <div class="row"><button class="btn" id="sv-timer" type="button">Start timer</button></div>
+          </div>
+        </div>
+      </div>
+      <div class="panel" id="sv-result">
+        <span class="eyebrow">Feedback per stap</span>
+        <div class="steps" id="sv-steps"></div>
+        <div id="sv-fb" class="small muted">Antwoord op het bezwaar en laat Claude beoordelen, of vink hieronder zelf af wat je gezegd hebt.</div>
+        <div class="selfcheck" id="sv-self">
+          <label><input type="checkbox" data-s="knuffel"> <span><b>Knuffel</b>: ik erkende eerst wat de eigenaar zei.</span></label>
+          <label><input type="checkbox" data-s="brug"> <span><b>Brug</b>: ik stelde gerust en haalde de druk weg.</span></label>
+          <label><input type="checkbox" data-s="counter"> <span><b>Counter</b>: ik teasede een voordeel, zonder diensten of commissie uit te leggen.</span></label>
+          <label><input type="checkbox" data-s="afspraak"> <span><b>Afspraak</b>: ik zei twee concrete momenten, ik vroeg niet.</span></label>
+        </div>
+        <button class="btn" id="sv-saveself" type="button">Zelfcheck bewaren</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ROLLENSPEL -->
+<section class="view" id="v-rollenspel" hidden>
+  <div style="display:grid;gap:6px">
+    <span class="eyebrow">Oefening 7 · koud en warm bellen</span>
+    <h2>Rollenspel met een eigenaar</h2>
+    <p class="lead small">Kies een case. Je kent alleen het pand en de bron, net als aan de echte telefoon. De eigenaar heeft een verborgen bezwaar. Doel: binnen 5 minuten een afspraak, met dag, uur en alle beslissingsnemers.</p>
+  </div>
+  <div class="rs">
+    <div class="cases" id="rs-cases"></div>
+    <div style="display:grid;gap:14px;min-width:0">
+      <p class="note" id="rs-need">Voor het rollenspel met Claude moet je eerst <a href="#toegang">aanmelden</a>. Zonder aanmelding speel je het in duo, met de rolkaart hieronder.</p>
+      <div class="phone" id="rs-phone">
+        <div class="phead">
+          <div class="who"><b id="rs-title">Geen case gekozen</b><span class="clock" id="rs-clock">0:00</span></div>
+          <div class="known" id="rs-known">Kies links een case om te bellen.</div>
+        </div>
+        <div class="chat" id="rs-chat" aria-live="polite">
+          <div class="empty"><b>Nog geen gesprek</b><span class="small">Kies een case en druk op “Bellen”. Claude neemt op als de eigenaar.</span></div>
+        </div>
+        <div class="compose">
+          <textarea id="rs-input" placeholder="Wat zeg je? (Enter verstuurt, Shift+Enter voor een nieuwe regel)" disabled></textarea>
+          <div class="row">
+            <button class="btn go" id="rs-call" type="button" disabled>Bellen</button>
+            <button class="btn" id="rs-send" type="button" disabled>Zeg het</button>
+            <button class="btn stop" id="rs-end" type="button" disabled>Ophangen en beoordelen</button>
+            <button class="btn ghost" id="rs-stop" type="button" hidden>Stop</button>
+          </div>
+        </div>
+      </div>
+      <div class="panel" id="rs-score" hidden></div>
+      <details class="panel" id="rs-duo">
+        <summary><b>Duo-modus: rolkaart tonen</b> <span class="muted small">(alleen voor wie de eigenaar speelt)</span></summary>
+        <div id="rs-rolkaart" style="margin-top:12px"></div>
+      </details>
+    </div>
+  </div>
+</section>
+
+<!-- SPIEKBRIEF -->
+<section class="view" id="v-spiekbrief" hidden>
+  <div style="display:grid;gap:6px">
+    <span class="eyebrow">Module 3 · 3.4 en 3.5</span>
+    <h2>Spiekbrief bij de telefoon</h2>
+  </div>
+  <div class="cheat">
+    <div class="sheet">
+      <h3>Belscript in 5 fasen</h3>
+      <div class="phase"><b>Wie</b><span class="q">“Goedemiddag, u spreekt met [naam] van vastgoedkantoor Huyzen.” (pauze)</span></div>
+      <div class="phase"><b>Wat</b><span class="q">“Ik zag dat u uw woning in de [straat] te koop aanbiedt, klopt dat? En u bent de eigenaar?”</span></div>
+      <div class="phase"><b>Waarom</b><span class="q">“Ik bel om een afspraak bij u thuis te maken. Ik bekijk uw woning en u krijgt van mij een concreet verkoopplan: de juiste prijs, de aanpak en de timing. Daarna beslist u zelf of u met ons verder wilt.”</span></div>
+      <div class="phase"><b>Afspraak</b><span class="q">“Past het u beter overdag of ’s avonds? Ik kan dinsdag om 14u of donderdag om 19u.”</span></div>
+      <div class="phase"><b>Bevestiging</b><span class="q">“Dus donderdag 19u bij u thuis in de [straat]. Kunnen alle eigenaars aanwezig zijn?”</span></div>
+    </div>
+    <div class="sheet">
+      <h3>De 7 gouden regels</h3>
+      <ol>
+        <li>Wees de chef van het gesprek, nooit onderdanig.</li>
+        <li>Altijd beleefd; “ja maar” bestaat niet.</li>
+        <li>Niet vragen maar zeggen: twee concrete momenten.</li>
+        <li>Niet verkopen maar suggereren en teasen.</li>
+        <li>Bel vanuit de Whise-app en lees vooraf de historiek.</li>
+        <li>Zeg het script 3 keer luidop voor je eerste telefoon.</li>
+        <li>Stuur tot 3 keer naar een afspraak.</li>
+      </ol>
+    </div>
+    <div class="sheet">
+      <h3>Knuffel – brug – counter – afspraak</h3>
+      <ul>
+        <li><b>Knuffel</b>: erken wat de eigenaar zegt. Niet tegenspreken.</li>
+        <li><b>Brug</b>: stel gerust, haal 1 à 2 seconden de druk weg.</li>
+        <li><b>Counter</b>: tease een voordeel. Geen diensten of commissie uitleggen.</li>
+        <li><b>Afspraak</b>: in één zin twee concrete momenten zeggen.</li>
+      </ul>
+      <p class="small muted">Regel van drie: maximaal 3 keer de cyclus. Wordt het ongemakkelijk, rond vriendelijk af en plan een opvolging.</p>
+    </div>
+  </div>
+  <div class="sheet">
+    <h3>Bezwarenmatrix</h3>
+    <div class="tablewrap"><table class="matrix" id="matrix"><thead><tr><th>Bezwaar</th><th>Knuffel</th><th>Brug</th><th>Counter + afspraak</th></tr></thead><tbody></tbody></table></div>
+  </div>
+</section>
+
+<!-- VOORTGANG -->
+<section class="view" id="v-voortgang" hidden>
+  <div style="display:grid;gap:6px">
+    <span class="eyebrow">Alleen zichtbaar voor jou, in deze browser</span>
+    <h2>Mijn voortgang</h2>
+  </div>
+  <div class="tiles" id="vg-tiles"></div>
+  <div class="sheet">
+    <h3>Bezwaren om nog te oefenen</h3>
+    <p class="small muted">Gemiddeld aantal stappen dat je raakte, per bezwaar (op 4). Rood: onder 3, daar oefen je deze week dagelijks op.</p>
+    <div class="tablewrap"><table class="log" id="vg-obj"><thead><tr><th>Bezwaar</th><th>Pogingen</th><th>Gemiddeld</th><th></th></tr></thead><tbody></tbody></table></div>
+  </div>
+  <div class="sheet">
+    <h3>Rollenspelen</h3>
+    <div class="tablewrap"><table class="log" id="vg-rs"><thead><tr><th>Datum</th><th>Case</th><th>Score</th><th>Afspraak</th></tr></thead><tbody></tbody></table></div>
+  </div>
+  <div class="row"><button class="btn" id="vg-reset" type="button">Voortgang wissen</button><span id="vg-confirm" hidden class="row"><span class="small">Alles wissen?</span><button class="btn stop" id="vg-yes" type="button">Ja, wissen</button><button class="btn ghost" id="vg-no" type="button">Annuleren</button></span></div>
+</section>
+<!-- AANMELDEN -->
+<section class="view" id="v-toegang" hidden>
+  <div style="display:grid;gap:6px">
+    <span class="eyebrow">Enkel voor deelnemers van de opleiding</span>
+    <h2 id="tg-title">Aanmelden</h2>
+    <p class="lead small" id="tg-lead">Vul het e-mailadres in waarmee je lesgever je uitnodigde. Je krijgt een mail met een link om aan te melden; een wachtwoord heb je niet nodig.</p>
+  </div>
+  <form class="sheet gate" id="tg-form" autocomplete="on">
+    <label for="tg-mail" class="eyebrow">E-mailadres</label>
+    <input type="email" id="tg-mail" placeholder="voornaam@huyzen.be" autocomplete="email">
+    <div class="row"><button class="btn go" type="submit" id="tg-send">Stuur me een aanmeldlink</button></div>
+    <p class="small muted" id="tg-status"></p>
+  </form>
+  <div class="sheet gate" id="tg-in" hidden>
+    <p>Aangemeld als <b id="tg-who"></b>.</p>
+    <div class="row"><button class="btn" type="button" id="tg-out">Afmelden</button></div>
+  </div>
+</section>
+<!-- GROEP (enkel lesgever) -->
+<section class="view" id="v-groep" hidden>
+  <div style="display:grid;gap:6px">
+    <span class="eyebrow">Enkel zichtbaar voor de lesgever</span>
+    <h2>Voortgang van de groep</h2>
+    <p class="lead small">Wie oefent hoeveel, met welke scores, en welke bezwaren de groep nog moeilijk vindt.</p>
+  </div>
+  <div class="sheet">
+    <h3>Per deelnemer</h3>
+    <div class="tablewrap"><table class="log" id="gr-people"><thead><tr><th>Deelnemer</th><th>Snelvuur</th><th>Gem. stappen</th><th>Rollenspelen</th><th>Gem. score</th><th>Laatst actief</th></tr></thead><tbody></tbody></table></div>
+  </div>
+  <div class="sheet">
+    <h3>Moeilijkste bezwaren voor de groep</h3>
+    <div class="tablewrap"><table class="log" id="gr-obj"><thead><tr><th>Bezwaar</th><th>Pogingen</th><th>Gemiddeld</th><th></th></tr></thead><tbody></tbody></table></div>
+  </div>
+</section>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script type="module">
+import { OBJ, CASES, CRIT } from "./content.js";
+import { SUPABASE_URL, SUPABASE_KEY } from "./config.js";
+const $ = s => document.querySelector(s);
+const el = (tag, attrs = {}, ...kids) => { const n = document.createElement(tag); for (const [k, v] of Object.entries(attrs)) { if (k === "class") n.className = v; else if (k === "text") n.textContent = v; else n.setAttribute(k, v); } for (const c of kids) n.append(c); return n; };
+
+/* ---------- Opslag (alleen deze browser) ---------- */
+const KEY = "belcoach-v1";
+const store = { load(){ try { return JSON.parse(localStorage.getItem(KEY)) || {sv:[],rs:[]}; } catch { return {sv:[],rs:[]}; } },
+  save(d){ try { localStorage.setItem(KEY, JSON.stringify(d)); } catch {} } };
+let data = store.load(); if (!data.sv) data.sv = []; if (!data.rs) data.rs = [];
+const sb = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null;
+let session = null, profiel = null;
+
+/* ---------- AI via /api/coach ---------- */
+class AiFout extends Error { constructor(status, msg){ super(msg); this.status = status; } }
+async function api(actie, body = {}, signal){
+  if (!session) throw new AiFout(401, "Meld je eerst aan om Claude te gebruiken.");
+  let r;
+  try {
+    r = await fetch("/api/coach", { method: "POST", signal, headers: { "Content-Type": "application/json", Authorization: "Bearer " + session.access_token }, body: JSON.stringify({ actie, ...body }) });
+  } catch (e) {
+    if (e.name === "AbortError") throw new AiFout(0, "");
+    throw new AiFout(502, "Geen verbinding. Controleer je internet en probeer opnieuw.");
+  }
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) {
+    if (r.status === 401) throw new AiFout(401, "Je sessie is verlopen. Meld je opnieuw aan.");
+    throw new AiFout(r.status, j.fout || "Er ging iets mis. Probeer opnieuw.");
+  }
+  return j;
+}
+function updateAI(){
+  const on = !!session;
+  $("#ai-state").textContent = on ? (profiel?.naam || "Aangemeld") : "Aanmelden";
+  $("#ai-state").classList.toggle("on", on);
+  $("#sv-eval").hidden = !on;
+  $("#sv-follow").dataset.ai = on ? "1" : "";
+  $("#rs-call").disabled = !on || !rs.c || rs.live;
+  $("#rs-need").hidden = on;
+  $("#nav-groep").hidden = profiel?.rol !== "lesgever";
+  $("#ai-note").replaceChildren(on
+    ? "Je bent aangemeld. Snelvuur, rollenspel en beoordeling gebruiken Claude, en je scores worden bewaard."
+    : el("span", {}, "Snelvuur werkt altijd, met het modelantwoord en een zelfcheck. Voor de feedback van Claude, het rollenspel en het bewaren van je scores moet je ", el("a", {href:"#toegang", text:"aanmelden"}), "."));
+  $("#tg-form").hidden = on; $("#tg-in").hidden = !on;
+  $("#tg-title").textContent = on ? "Je bent aangemeld" : "Aanmelden";
+  $("#tg-who").textContent = session?.user?.email || "";
+  $("#vg-reset").parentElement.hidden = on;
+}
+async function laadProfiel(){
+  profiel = null;
+  if (!sb || !session) return;
+  const { data: p } = await sb.from("profiles").select("naam, rol").eq("id", session.user.id).maybeSingle();
+  profiel = p || null;
+}
+if (sb) {
+  const { data: { session: s0 } } = await sb.auth.getSession();
+  session = s0; await laadProfiel();
+  sb.auth.onAuthStateChange(async (_e, s1) => { session = s1; await laadProfiel(); updateAI(); route(); });
+}
+$("#tg-form").addEventListener("submit", async e => {
+  e.preventDefault();
+  const mail = $("#tg-mail").value.trim(); if (!mail || !sb) return;
+  $("#tg-send").disabled = true; $("#tg-status").textContent = "Even geduld…";
+  const { error } = await sb.auth.signInWithOtp({ email: mail, options: { shouldCreateUser: false, emailRedirectTo: location.origin } });
+  $("#tg-send").disabled = false;
+  $("#tg-status").textContent = error
+    ? "Dit e-mailadres is niet uitgenodigd, of er ging iets mis. Vraag je lesgever om je uit te nodigen."
+    : "Kijk in je mailbox (ook bij spam) en klik op de link om aan te melden.";
+});
+$("#tg-out").addEventListener("click", async () => { await sb?.auth.signOut(); location.hash = "start"; });
+
+/* ---------- Routing ---------- */
+const ROUTES = ["start","snelvuur","rollenspel","spiekbrief","voortgang","toegang","groep"];
+function route(){
+  const r = ROUTES.includes(location.hash.slice(1)) ? location.hash.slice(1) : "start";
+  for (const x of ROUTES) $("#v-"+x).hidden = x !== r;
+  document.querySelectorAll("nav.tabs a").forEach(a => a.setAttribute("aria-current", a.dataset.r === r ? "page" : "false"));
+  if (r === "voortgang") renderProgress();
+  if (r === "groep") renderGroep();
+  window.scrollTo(0,0);
+}
+addEventListener("hashchange", route);
+
+/* ---------- Snelvuur ---------- */
+const sv = { order: shuffle(OBJ.map(o => o.id)), i: 0, ronde: 2, t: null, left: 30, last: null };
+function shuffle(a){ a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+const cur = () => OBJ.find(o => o.id === sv.order[sv.i]);
+function renderCard(){
+  const o = cur();
+  $("#sv-no").textContent = `Kaart ${sv.i + 1} / ${OBJ.length}`;
+  $("#sv-set").textContent = o.set === "Standaard" ? "Standaardbezwaar" : "Oefendag";
+  $("#sv-obj").textContent = "“" + o.b + "”";
+  $("#h-k").textContent = o.k; $("#h-b").textContent = o.br; $("#h-c").textContent = o.c;
+  $("#sv-hint").hidden = sv.ronde !== 1;
+  $("#sv-ans").value = ""; $("#sv-second").textContent = ""; $("#sv-second-wrap").hidden = true; $("#sv-follow").hidden = true;
+  $("#sv-steps").replaceChildren(); $("#sv-fb").className = "small muted";
+  $("#sv-fb").textContent = "Antwoord op het bezwaar en laat Claude beoordelen, of vink hieronder zelf af wat je gezegd hebt.";
+  document.querySelectorAll("#sv-self input").forEach(c => c.checked = false);
+  sv.last = null; stopTimer(); setRing(30);
+}
+document.querySelectorAll(".seg button").forEach(b => b.addEventListener("click", () => {
+  sv.ronde = +b.dataset.ronde;
+  document.querySelectorAll(".seg button").forEach(x => x.setAttribute("aria-pressed", x === b ? "true" : "false"));
+  $("#sv-hint").hidden = sv.ronde !== 1;
+  $("#sv-follow").hidden = !(sv.ronde === 3 && sv.last && $("#sv-follow").dataset.ai);
+}));
+$("#sv-next").addEventListener("click", () => { sv.i = (sv.i + 1) % OBJ.length; if (sv.i === 0) sv.order = shuffle(sv.order); renderCard(); });
+$("#sv-model").addEventListener("click", () => {
+  if (!$("#sv-ans").value.trim() && !sv.last) { $("#sv-fb").className = "small"; $("#sv-fb").textContent = "Antwoord eerst zelf. Daarna kan je het modelantwoord bekijken."; return; }
+  $("#sv-hint").hidden = false;
+});
+function setRing(s){ const r = $("#sv-ring"); r.style.setProperty("--p", Math.max(0, s) / 30); $("#sv-sec").textContent = Math.max(0, s); r.classList.toggle("late", s <= 5); }
+function stopTimer(){ clearInterval(sv.t); sv.t = null; $("#sv-timer").textContent = "Start timer"; }
+$("#sv-timer").addEventListener("click", () => {
+  if (sv.t) { stopTimer(); return; }
+  sv.left = 30; setRing(30); $("#sv-timer").textContent = "Stop timer"; $("#sv-ans").focus();
+  sv.t = setInterval(() => { sv.left--; setRing(sv.left); if (sv.left <= 0) { stopTimer(); $("#sv-fb").className = "small"; $("#sv-fb").textContent = "Tijd om. Aan de telefoon wacht niemand 30 seconden: maak je antwoord korter."; } }, 1000);
+});
+function showSteps(st){
+  const names = {knuffel:"Knuffel",brug:"Brug",counter:"Counter",afspraak:"Afspraak"};
+  $("#sv-steps").replaceChildren(...Object.keys(names).map(k => {
+    const ok = !!st[k]?.ok;
+    return el("div", {class: "step " + (ok ? "ok" : "no")}, el("div", {class:"nm"}, el("span", {class:"mark", text: ok ? "✓" : "✕"}), names[k]), el("div", {class:"ex", text: String(st[k]?.uitleg || "")}));
+  }));
+}
+function logSv(o, st, how){
+  const n = ["knuffel","brug","counter","afspraak"].filter(k => st[k]?.ok).length;
+  data.sv.push({d: Date.now(), id: o.id, n, how}); data.sv = data.sv.slice(-500); store.save(data);
+}
+$("#sv-saveself").addEventListener("click", () => {
+  const st = {}; document.querySelectorAll("#sv-self input").forEach(c => st[c.dataset.s] = {ok: c.checked, uitleg: c.checked ? "Zelf afgevinkt" : "Nog niet"});
+  showSteps(st); logSv(cur(), st, "zelf"); sv.last = $("#sv-ans").value.trim() || "(mondeling)";
+  if (session) api("zelfcheck", { bezwaar: cur().id, ronde: sv.ronde, stappen: Object.fromEntries(Object.entries(st).map(([k, v]) => [k, v.ok])) }).catch(() => {});
+  $("#sv-fb").className = "small"; $("#sv-fb").textContent = "Bewaard. Ontbreekt er een stap? Doe dezelfde kaart opnieuw.";
+  $("#sv-follow").hidden = !(sv.ronde === 3 && $("#sv-follow").dataset.ai);
+});
+$("#sv-eval").addEventListener("click", async () => {
+  const o = cur(), ans = $("#sv-ans").value.trim();
+  if (!ans) { $("#sv-fb").className = "small"; $("#sv-fb").textContent = "Typ eerst je antwoord, zoals je het zou zeggen."; $("#sv-ans").focus(); return; }
+  stopTimer();
+  const btn = $("#sv-eval"); btn.disabled = true;
+  $("#sv-fb").className = "thinking small"; $("#sv-fb").textContent = "Claude luistert mee…";
+  try {
+    const r = await api("snelvuur", { bezwaar: o.id, ronde: sv.ronde, antwoord: ans, tweede: sv.ronde === 3 ? $("#sv-second").textContent : "" });
+    showSteps(r); logSv(o, r, "claude"); sv.last = ans;
+    const fb = el("div", {class:"small", style:"display:grid;gap:8px"});
+    if (r.jaMaar) fb.append(el("div", {class:"note warn", text:"Je gebruikte “ja maar” of ging in discussie. Begin met de knuffel."}));
+    if (r.verkoopt) fb.append(el("div", {class:"note warn", text:"Je begon te verkopen of diensten uit te leggen. Aan de telefoon tease je alleen."}));
+    if (r.tip) fb.append(el("div", {}, el("b", {text:"Tip: "}), String(r.tip)));
+    if (r.betereVersie) fb.append(el("div", {}, el("b", {text:"Zo kan het ook: "}), el("span", {class:"q", text:"“" + String(r.betereVersie) + "”"})));
+    $("#sv-fb").replaceChildren(fb); $("#sv-fb").className = "";
+    $("#sv-follow").hidden = sv.ronde !== 3;
+  } catch (e) {
+    $("#sv-fb").className = "small"; $("#sv-fb").textContent = e.message || "Gestopt.";
+  } finally { btn.disabled = false; }
+});
+$("#sv-follow").addEventListener("click", async () => {
+  const o = cur(), b = $("#sv-follow"); b.disabled = true;
+  $("#sv-second-wrap").hidden = false; $("#sv-second").textContent = "…";
+  try {
+    const r = await api("tweede", { bezwaar: o.id, antwoord: sv.last || "" });
+    $("#sv-second").textContent = r.tekst;
+    $("#sv-ans").value = ""; $("#sv-steps").replaceChildren();
+    $("#sv-fb").className = "small muted"; $("#sv-fb").textContent = "Buig ook dit tweede bezwaar om en laat het opnieuw beoordelen.";
+    $("#sv-ans").focus();
+  } catch (e) { $("#sv-second").textContent = e.message || "Gestopt."; }
+  finally { b.disabled = false; b.hidden = true; }
+});
+
+/* ---------- Rollenspel ---------- */
+const rs = { c: null, beurten: [], busy: false, live: false, start: 0, tick: null, ctl: null };
+const LVL = {basis:"Basis", gemiddeld:"Gemiddeld", moeilijk:"Moeilijk", warm:"Warm gesprek"};
+function renderCases(){
+  $("#rs-cases").replaceChildren(...CASES.map(c => {
+    const b = el("button", {class:"case", type:"button", "aria-pressed": rs.c?.id === c.id ? "true" : "false"},
+      el("span", {class:"m"}, el("span", {class:"pill " + c.lvl, text: LVL[c.lvl]}), "Case " + c.id),
+      el("span", {class:"t", text: c.t}));
+    b.addEventListener("click", () => pickCase(c));
+    return b;
+  }));
+}
+function pickCase(c){
+  if (rs.live) return;
+  rs.c = c; rs.beurten = []; renderCases();
+  $("#rs-title").textContent = `Case ${c.id} · ${c.t}`;
+  $("#rs-known").textContent = "Wat je weet: " + c.known;
+  $("#rs-chat").replaceChildren(el("div", {class:"empty"}, el("b", {text:"Klaar om te bellen"}), el("span", {class:"small", text:"Lees wat je weet, zeg je opening één keer luidop en druk op “Bellen”."})));
+  $("#rs-score").hidden = true; $("#rs-clock").textContent = "0:00"; $("#rs-clock").classList.remove("late");
+  $("#rs-call").textContent = "Bellen";
+  const dl = el("dl", {class:"rolkaart"},
+    el("dt", {text:"Naam"}), el("dd", {text:c.naam}),
+    el("dt", {text:"Situatie"}), el("dd", {text:c.sit}),
+    el("dt", {text:"Verborgen bezwaar"}), el("dd", {text:c.bez}),
+    el("dt", {text:"Karakter"}), el("dd", {text:c.kar}),
+    el("dt", {text:"Beslissingsnemers"}), el("dd", {text:c.dm}),
+    el("dt", {text:"Wanneer ga je akkoord?"}), el("dd", {text:c.ok}));
+  $("#rs-rolkaart").replaceChildren(dl);
+  updateAI();
+}
+function bubble(cls, text){ const b = el("div", {class:"bub " + cls, text}); $("#rs-chat").append(b); $("#rs-chat").scrollTop = $("#rs-chat").scrollHeight; return b; }
+function setLive(on){
+  rs.live = on;
+  $("#rs-input").disabled = !on; $("#rs-send").disabled = !on;
+  $("#rs-end").disabled = !on;
+  $("#rs-call").disabled = on || !code || !rs.c;
+  $("#rs-call").textContent = rs.beurten.length ? "Opnieuw bellen" : "Bellen";
+}
+function clock(){ const s = Math.floor((Date.now() - rs.start) / 1000); $("#rs-clock").textContent = `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`; $("#rs-clock").classList.toggle("late", s >= 300); }
+async function ownerTurn(){
+  rs.busy = true; $("#rs-send").disabled = true; $("#rs-stop").hidden = false;
+  rs.ctl = new AbortController();
+  const b = bubble("e", "…");
+  try {
+    const r = await api("eigenaar", { case: rs.c.id, beurten: rs.beurten }, rs.ctl.signal);
+    b.textContent = r.tekst;
+    rs.beurten.push({ wie: "eigenaar", tekst: r.tekst });
+    if (r.einde) { bubble("sys", "De eigenaar heeft ingehaakt."); endCall(true); }
+  } catch (e) {
+    b.remove();
+    if (rs.beurten.length && rs.beurten[rs.beurten.length - 1].wie === "beller") {
+      const last = rs.beurten.pop(); $("#rs-input").value = last.tekst;
+      const bubs = $("#rs-chat").querySelectorAll(".bub.b"); bubs[bubs.length - 1]?.remove();
+    }
+    if (e.message) bubble("sys", e.message);
+    if (!rs.beurten.length) { setLive(false); clearInterval(rs.tick); }
+  } finally {
+    rs.busy = false; $("#rs-stop").hidden = true;
+    if (rs.live) { $("#rs-send").disabled = false; $("#rs-input").focus(); }
+  }
+}
+$("#rs-call").addEventListener("click", async () => {
+  if (!code || !rs.c) return;
+  rs.beurten = []; $("#rs-chat").replaceChildren(); $("#rs-score").hidden = true;
+  bubble("sys", "De telefoon gaat over…");
+  rs.start = Date.now(); clearInterval(rs.tick); rs.tick = setInterval(clock, 1000); clock();
+  setLive(true);
+  await ownerTurn();
+});
+async function send(){
+  const v = $("#rs-input").value.trim(); if (!v || rs.busy || !rs.live) return;
+  if (rs.beurten.length >= 39) { bubble("sys", "Het gesprek is te lang geworden. Hang op en laat het beoordelen."); return; }
+  $("#rs-input").value = ""; bubble("b", v);
+  rs.beurten.push({ wie: "beller", tekst: v.slice(0, 1500) });
+  await ownerTurn();
+}
+$("#rs-send").addEventListener("click", send);
+$("#rs-input").addEventListener("keydown", e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } });
+$("#rs-stop").addEventListener("click", () => rs.ctl?.abort());
+$("#rs-end").addEventListener("click", () => { if (rs.busy) rs.ctl?.abort(); if (rs.live) bubble("sys", "Je hebt opgehangen."); endCall(true); });
+async function endCall(evaluate){
+  clearInterval(rs.tick); setLive(false);
+  // een onbeantwoorde laatste beurt van de beller hoort niet in de beoordeling
+  if (rs.beurten.length && rs.beurten[rs.beurten.length - 1].wie === "beller" && rs.beurten.length % 2 === 0) rs.beurten.pop();
+  if (!evaluate || !rs.beurten.some(b => b.wie === "beller")) return;
+  const panel = $("#rs-score"); panel.hidden = false;
+  panel.replaceChildren(el("span", {class:"eyebrow", text:"Observatiechecklist"}), el("p", {class:"thinking", text:"Claude beoordeelt je gesprek… dit duurt meestal een halve minuut."}));
+  const c = rs.c;
+  try {
+    const r = await api("beoordeel", { case: c.id, beurten: rs.beurten, duur: $("#rs-clock").textContent });
+    const crit = Array.isArray(r.criteria) ? r.criteria : [];
+    const scores = CRIT.map((_, i) => { const f = crit.find(x => +x.nr === i + 1) || crit[i] || {}; return {s: Math.max(0, Math.min(2, Math.round(+f.score || 0))), t: String(f.toelichting || "")}; });
+    const tot = scores.reduce((a, b) => a + b.s, 0);
+    data.rs.push({d: Date.now(), id: c.id, tot, af: !!r.afspraak}); data.rs = data.rs.slice(-300); store.save(data);
+    const tb = el("tbody");
+    scores.forEach((x, i) => {
+      const dots = el("span", {class:"dots", "aria-label": x.s + " op 2"}, el("i", {class: x.s >= 1 ? "on" : ""}), el("i", {class: x.s >= 2 ? "on" : ""}));
+      tb.append(el("tr", {}, el("td", {class:"s"}, dots), el("td", {}, el("b", {text: CRIT[i]}), el("div", {class:"small muted", text: x.t}))));
+    });
+    const kids = [
+      el("span", {class:"eyebrow", text:"Observatiechecklist"}),
+      el("div", {class:"total"}, el("span", {class:"n", text: tot + "/20"}), el("span", {class: "pill " + (tot >= 15 ? "basis" : "moeilijk"), text: tot >= 15 ? "Doel gehaald (≥ 15)" : "Doel: 15 of meer"}), el("span", {class:"pill " + (r.afspraak ? "basis" : "gemiddeld"), text: r.afspraak ? "Afspraak gemaakt" : "Geen afspraak"})),
+      el("div", {class:"tablewrap"}, el("table", {class:"crit"}, tb))];
+    if (r.sterkPunt) kids.push(el("p", {}, el("b", {text:"Sterk: "}), String(r.sterkPunt)));
+    if (Array.isArray(r.tips) && r.tips.length) kids.push(el("div", {}, el("b", {text:"Volgende keer"}), el("ol", {style:"margin:6px 0 0;padding-left:20px;display:grid;gap:4px"}, ...r.tips.slice(0, 3).map(t => el("li", {text: String(t)})))));
+    if (r.betereZin?.zin) kids.push(el("p", {}, el("b", {text: "Beter (" + String(r.betereZin.moment || "") + "): "}), el("span", {class:"q", text:"“" + String(r.betereZin.zin) + "”"})));
+    kids.push(el("p", {class:"small muted", text:"Open de duo-modus hieronder om de rolkaart van de eigenaar te lezen."}));
+    panel.replaceChildren(...kids);
+  } catch (e) {
+    panel.replaceChildren(el("span", {class:"eyebrow", text:"Observatiechecklist"}), el("p", {class:"small", text: e.message || "Beoordeling gestopt."}));
+  }
+}
+
+/* ---------- Spiekbrief ---------- */
+function renderMatrix(){
+  $("#matrix tbody").replaceChildren(...OBJ.map(o => el("tr", {}, el("td", {text:"“" + o.b + "”"}), el("td", {text:o.k}), el("td", {text:o.br}), el("td", {text:o.c}))));
+}
+
+/* ---------- Voortgang ---------- */
+async function laadEigenData(){
+  if (!sb || !session) return data;
+  const [a, b] = await Promise.all([
+    sb.from("snelvuur_pogingen").select("bezwaar_id, stappen, created_at").eq("user_id", session.user.id).order("created_at"),
+    sb.from("rollenspellen").select("case_id, score, afspraak, created_at").eq("user_id", session.user.id).order("created_at")]);
+  return {
+    sv: (a.data || []).map(x => ({ d: Date.parse(x.created_at), id: x.bezwaar_id, n: x.stappen })),
+    rs: (b.data || []).map(x => ({ d: Date.parse(x.created_at), id: x.case_id, tot: x.score, af: x.afspraak }))};
+}
+async function renderProgress(){
+  const data = await laadEigenData();
+  const days = new Set([...data.sv, ...data.rs].map(x => new Date(x.d).toDateString())).size;
+  const best = data.rs.length ? Math.max(...data.rs.map(x => x.tot)) : null;
+  const avg = data.sv.length ? (data.sv.reduce((a, b) => a + b.n, 0) / data.sv.length) : null;
+  const tile = (v, l) => el("div", {class:"tile"}, el("span", {class:"v", text: v}), el("span", {class:"small muted", text: l}));
+  $("#vg-tiles").replaceChildren(
+    tile(String(data.sv.length), "bezwaren beantwoord"),
+    tile(avg == null ? "–" : avg.toFixed(1).replace(".", ",") + "/4", "gemiddeld aantal stappen"),
+    tile(String(data.rs.length), "rollenspelen gevoerd"),
+    tile(best == null ? "–" : best + "/20", "beste rollenspelscore"),
+    tile(String(days), "dagen geoefend"));
+  const per = OBJ.map(o => { const xs = data.sv.filter(x => x.id === o.id); return {o, n: xs.length, a: xs.length ? xs.reduce((s, x) => s + x.n, 0) / xs.length : null}; })
+    .filter(x => x.n).sort((a, b) => a.a - b.a);
+  $("#vg-obj tbody").replaceChildren(...(per.length ? per.map(x => el("tr", {}, el("td", {text:"“" + x.o.b + "”"}), el("td", {text:String(x.n)}), el("td", {text: x.a.toFixed(1).replace(".", ",") + "/4"}), el("td", {}, el("div", {class:"bar"}, el("i", {class: x.a < 3 ? "weak" : "", style: "width:" + (x.a / 4 * 100) + "%"})))))
+    : [el("tr", {}, el("td", {colspan:"4", class:"muted", text:"Nog geen bezwaren geoefend. Start met het snelvuur."}))]));
+  const last = data.rs.slice(-12).reverse();
+  $("#vg-rs tbody").replaceChildren(...(last.length ? last.map(x => { const c = CASES.find(y => y.id === x.id); return el("tr", {}, el("td", {text: new Date(x.d).toLocaleDateString("nl-BE")}), el("td", {text: c ? `Case ${c.id} · ${c.t}` : "Case " + x.id}), el("td", {text: x.tot + "/20"}), el("td", {text: x.af ? "Ja" : "Nee"})); })
+    : [el("tr", {}, el("td", {colspan:"4", class:"muted", text:"Nog geen rollenspelen. Kies een case bij Rollenspel."}))]));
+}
+$("#vg-reset").addEventListener("click", () => { $("#vg-confirm").hidden = false; });
+$("#vg-no").addEventListener("click", () => { $("#vg-confirm").hidden = true; });
+$("#vg-yes").addEventListener("click", () => { data = {sv:[], rs:[]}; store.save(data); $("#vg-confirm").hidden = true; renderProgress(); });
+
+/* ---------- Groep (lesgever) ---------- */
+async function renderGroep(){
+  if (profiel?.rol !== "lesgever") { location.hash = "start"; return; }
+  const [p, a, b] = await Promise.all([
+    sb.from("profiles").select("id, naam, rol").order("naam"),
+    sb.from("snelvuur_pogingen").select("user_id, bezwaar_id, stappen, created_at"),
+    sb.from("rollenspellen").select("user_id, score, created_at")]);
+  const sv = a.data || [], rsx = b.data || [];
+  const fmt = n => n.toFixed(1).replace(".", ",");
+  const rows = (p.data || []).filter(x => x.rol === "deelnemer").map(x => {
+    const s = sv.filter(y => y.user_id === x.id), r2 = rsx.filter(y => y.user_id === x.id);
+    const last = [...s, ...r2].map(y => Date.parse(y.created_at)).sort().pop();
+    return el("tr", {}, el("td", {text: x.naam}), el("td", {text: String(s.length)}),
+      el("td", {text: s.length ? fmt(s.reduce((t, y) => t + y.stappen, 0) / s.length) + "/4" : "–"}),
+      el("td", {text: String(r2.length)}),
+      el("td", {text: r2.length ? fmt(r2.reduce((t, y) => t + y.score, 0) / r2.length) + "/20" : "–"}),
+      el("td", {text: last ? new Date(last).toLocaleDateString("nl-BE") : "nog niet"}));
+  });
+  $("#gr-people tbody").replaceChildren(...(rows.length ? rows : [el("tr", {}, el("td", {colspan: "6", class: "muted", text: "Nog geen deelnemers. Nodig ze uit in Supabase."}))]));
+  const per = OBJ.map(o => { const xs = sv.filter(x => x.bezwaar_id === o.id); return {o, n: xs.length, a: xs.length ? xs.reduce((t, x) => t + x.stappen, 0) / xs.length : null}; })
+    .filter(x => x.n).sort((x, y) => x.a - y.a).slice(0, 10);
+  $("#gr-obj tbody").replaceChildren(...(per.length ? per.map(x => el("tr", {}, el("td", {text: "“" + x.o.b + "”"}), el("td", {text: String(x.n)}), el("td", {text: fmt(x.a) + "/4"}), el("td", {}, el("div", {class: "bar"}, el("i", {class: x.a < 3 ? "weak" : "", style: "width:" + (x.a / 4 * 100) + "%"})))))
+    : [el("tr", {}, el("td", {colspan: "4", class: "muted", text: "Nog geen snelvuurpogingen."}))]));
+}
+
+/* ---------- Start ---------- */
+renderCard(); renderCases(); renderMatrix(); pickCase(CASES[0]); updateAI(); route();
+</script>
+</body>
+</html>
