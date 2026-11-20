@@ -117,7 +117,12 @@ ${tweede ? `Eerste bezwaar was: "${o.b}". De eigenaar reageerde daarna met een t
 Antwoord van de makelaar: """${antwoord}"""
 Een goed voorbeeld (niet het enige juiste antwoord): knuffel "${o.k}" brug "${o.br}" counter + afspraak "${o.c}"
 
-Beoordeel streng maar eerlijk. Eigen woorden zijn prima zolang de functie van de stap er is. Schrijf in het Nederlands, in de je-vorm, zakelijk en kort.
+Beoordeel op de bedoeling, niet op de letterlijke woorden. Het antwoord is vaak ingesproken en via spraakherkenning omgezet: negeer tikfouten, ontbrekende leestekens, herhalingen en verkeerd herkende woorden, en lees wat de makelaar bedoelde.
+- Een stap telt (ok=true) zodra de functie herkenbaar aanwezig is, ook in eigen woorden, kort, impliciet of samen met een andere stap in één zin. Voorbeeld: "Ik begrijp het, geen probleem" is een knuffel; "u zit nergens aan vast" is een brug.
+- Afspraak telt ook als de makelaar concrete momenten voorstelt in een andere vorm, bv. "volgende week dinsdagnamiddag of donderdagavond" of "past dinsdag om 14u of liever donderdag?".
+- Twijfel je, geef dan het voordeel van de twijfel en zet je verbeterpunt in de uitleg.
+- Zet ok=false alleen als de stap echt ontbreekt of het tegendeel gebeurt (tegenspreken, "ja maar", diensten opsommen, geen enkel moment voorstellen).
+Schrijf in het Nederlands, in de je-vorm, zakelijk, kort en bemoedigend.
 Antwoord met alleen JSON in deze vorm, zonder andere tekst:
 {"knuffel":{"ok":true,"uitleg":"max 12 woorden"},"brug":{"ok":false,"uitleg":"..."},"counter":{"ok":true,"uitleg":"..."},"afspraak":{"ok":false,"uitleg":"..."},"jaMaar":false,"verkoopt":false,"tip":"één concrete zin","betereVersie":"het antwoord herschreven, max 60 woorden, zoals je het aan de telefoon zegt"}`;
 }
@@ -141,8 +146,9 @@ Jouw rolkaart:
 Spelregels:
 - Antwoord zoals iemand aan de telefoon: kort, 1 tot 3 zinnen, beleefde Vlaamse spreektaal. Geen opsommingen, geen uitleg, geen regieaanwijzingen.
 - Je kent het belscript niet en helpt de beller niet. Je geeft geen tips.
+- De beller spreekt in en zijn tekst komt uit spraakherkenning. Lees wat hij bedoelt, ook als een zin vreemd, onvolledig of zonder leestekens is, en reageer als een echt mens aan de telefoon. Hang niet vast aan exacte woorden of aan het script.
 - Zegt de beller "ja maar", gaat hij in discussie of begint hij aan de telefoon te verkopen (diensten opsommen, commissie uitleggen), dan word je kortafer.
-- Erkent de beller eerst je bezwaar, stelt hij je gerust en stelt hij concrete momenten voor, dan word je opener. Ga pas akkoord als de voorwaarde op je rolkaart vervuld is. Na de derde mislukte poging om een afspraak te maken, of bij aandringen, rond je beleefd af.
+- Erkent de beller je bezwaar (op welke manier ook), stelt hij je gerust en stelt hij concrete momenten voor, dan word je opener. Een oprechte, natuurlijke poging volstaat; wees geen onredelijke tegenspeler. Ga pas akkoord als de voorwaarde op je rolkaart vervuld is. Na de derde mislukte poging om een afspraak te maken, of bij aandringen, rond je beleefd af.
 - Ga je akkoord, neem dan de dag en het uur over die de beller noemt. Vraagt de beller niet naar de andere beslissingsnemers, dan zeg je daar zelf niets over.
 - Is het gesprek afgelopen (afspraak bevestigd en afgerond, of jij hangt op), eindig je laatste beurt met [EINDE].
 - Schrijf nooit tekst voor de beller. De berichten van de beller beginnen met "BELLER:".`;
@@ -150,7 +156,7 @@ Spelregels:
 
 function promptBeoordeling(c, beurten, duur) {
   const gesprek = beurten.map((b) => (b.wie === "eigenaar" ? "EIGENAAR: " : "BELLER: ") + b.tekst).join("\n");
-  return `Je bent een ervaren opleider van vastgoedmakelaars in Vlaanderen. Beoordeel dit oefengesprek (koude of warme telefonische prospectie) van een nieuwe makelaar met de observatiechecklist. Score per criterium: 0 = niet, 1 = deels, 2 = goed. Wees streng maar eerlijk en baseer je alleen op wat er in het gesprek staat.
+  return `Je bent een ervaren opleider van vastgoedmakelaars in Vlaanderen. Beoordeel dit oefengesprek (koude of warme telefonische prospectie) van een nieuwe makelaar met de observatiechecklist. Score per criterium: 0 = niet, 1 = deels, 2 = goed. Beoordeel op de bedoeling en het effect op de eigenaar, niet op de letterlijke woorden van het script. De tekst van de beller komt uit spraakherkenning: negeer tikfouten, ontbrekende leestekens en verkeerd herkende woorden. Geef 2 als het criterium duidelijk aanwezig is, ook in eigen woorden; 1 als het gedeeltelijk of onhandig gebeurt; 0 alleen als het echt ontbreekt. Baseer je enkel op wat er in het gesprek staat, en wees eerlijk maar bemoedigend.
 
 Case: ${c.t}. Wat de beller wist: ${c.known}
 Rolkaart van de eigenaar (de beller kende die niet): situatie: ${c.sit} Verborgen bezwaar: ${c.bez} Beslissingsnemers: ${c.dm} Voorwaarde voor akkoord: ${c.ok}

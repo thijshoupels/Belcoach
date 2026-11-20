@@ -256,7 +256,7 @@ textarea{min-height:120px;resize:vertical}
       <div id="sv-second-wrap" hidden><span class="eyebrow">De eigenaar reageert</span><div class="second" id="sv-second"></div></div>
       <label for="sv-ans" class="eyebrow">Jouw antwoord, zoals je het aan de telefoon zegt</label>
       <textarea id="sv-ans" placeholder="Knuffel… brug… counter… en twee concrete momenten."></textarea>
-      <div class="row"><button class="btn mic" id="sv-mic" type="button" aria-pressed="false" hidden><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11h-2z"/></svg><span>Spreek je antwoord in</span></button></div>
+      <div class="row"><button class="btn go mic" id="sv-start" type="button" aria-pressed="false"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11h-2z"/></svg><span>Start</span></button><span class="small muted" id="sv-hint-start">Start zet de klok van 30 seconden aan en neemt je antwoord op. Klik op Klaar als je klaar bent.</span></div>
       <div class="row">
         <button class="btn go" id="sv-eval" type="button">Laat Claude beoordelen</button>
         <button class="btn" id="sv-model" type="button">Toon modelantwoord</button>
@@ -270,7 +270,7 @@ textarea{min-height:120px;resize:vertical}
           <div class="ring" id="sv-ring"><span id="sv-sec">30</span></div>
           <div style="display:grid;gap:6px">
             <b>30 seconden per bezwaar</b>
-            <div class="row"><button class="btn" id="sv-timer" type="button">Start timer</button></div>
+            <span class="small muted">De klok start samen met de opname. Na 30 seconden stopt de opname en wordt je antwoord meteen beoordeeld.</span>
           </div>
         </div>
       </div>
@@ -312,7 +312,7 @@ textarea{min-height:120px;resize:vertical}
         <div class="compose">
           <textarea id="rs-input" placeholder="Wat zeg je? (Enter verstuurt, Shift+Enter voor een nieuwe regel)" disabled></textarea>
           <div class="voice" id="rs-voice">
-            <label><input type="checkbox" id="rs-hf" checked> Handsfree bellen: na de eigenaar luistert de Belcoach meteen naar jou</label>
+            <label><input type="checkbox" id="rs-hf" checked> Handsfree bellen: na de eigenaar luistert de Belcoach naar jou, en stuurt je zin door na 2,5 seconden stilte (of klik op Klaar)</label>
             <label><input type="checkbox" id="rs-tts" checked> Eigenaar hardop laten spreken</label>
             <span id="rs-voicenote"></span>
           </div>
@@ -582,7 +582,7 @@ function renderCard(){
   $("#sv-steps").replaceChildren(); $("#sv-fb").className = "small muted";
   $("#sv-fb").textContent = "Antwoord op het bezwaar en laat Claude beoordelen, of vink hieronder zelf af wat je gezegd hebt.";
   document.querySelectorAll("#sv-self input").forEach(c => c.checked = false);
-  sv.last = null; stopTimer(); setRing(30);
+  sv.last = null; if (sv.loopt) { stopTimer(); stopLuisteren(); } setRing(30);
 }
 document.querySelectorAll(".seg button").forEach(b => b.addEventListener("click", () => {
   sv.ronde = +b.dataset.ronde;
@@ -596,12 +596,31 @@ $("#sv-model").addEventListener("click", () => {
   $("#sv-hint").hidden = false;
 });
 function setRing(s){ const r = $("#sv-ring"); r.style.setProperty("--p", Math.max(0, s) / 30); $("#sv-sec").textContent = Math.max(0, s); r.classList.toggle("late", s <= 5); }
-function stopTimer(){ clearInterval(sv.t); sv.t = null; $("#sv-timer").textContent = "Start timer"; }
-$("#sv-timer").addEventListener("click", () => {
-  if (sv.t) { stopTimer(); return; }
-  sv.left = 30; setRing(30); $("#sv-timer").textContent = "Stop timer"; $("#sv-ans").focus();
-  sv.t = setInterval(() => { sv.left--; setRing(sv.left); if (sv.left <= 0) { stopTimer(); $("#sv-fb").className = "small"; $("#sv-fb").textContent = "Tijd om. Aan de telefoon wacht niemand 30 seconden: maak je antwoord korter."; } }, 1000);
-});
+function stopTimer(){
+  clearInterval(sv.t); sv.t = null; sv.loopt = false;
+  $("#sv-start").setAttribute("aria-pressed", "false");
+  $("#sv-start span").textContent = "Start";
+}
+async function startAntwoord(){
+  if (sv.loopt) return stopAntwoord(false);
+  sv.loopt = true; sv.left = 30; setRing(30);
+  $("#sv-start").setAttribute("aria-pressed", "true");
+  $("#sv-start span").textContent = "Klaar";
+  $("#sv-fb").className = "small muted";
+  $("#sv-fb").textContent = SR ? "Spreek je antwoord in. Klik op Klaar als je klaar bent." : "Typ je antwoord. Klik op Klaar als je klaar bent.";
+  sv.t = setInterval(() => { sv.left--; setRing(sv.left); if (sv.left <= 0) stopAntwoord(true); }, 1000);
+  if (SR) { sv.opname = luister($("#sv-ans"), null, { max: 32000 }); } else { $("#sv-ans").focus(); }
+}
+async function stopAntwoord(tijdOm){
+  if (!sv.loopt) return;
+  stopTimer();
+  if (spraak.sessie) { stopLuisteren(); await sv.opname; }
+  const tekst = $("#sv-ans").value.trim();
+  if (!tekst) { $("#sv-fb").className = "small"; $("#sv-fb").textContent = tijdOm ? "Tijd om en er is niets opgenomen. Probeer opnieuw en spreek dichter bij de microfoon." : "Er is niets opgenomen. Probeer opnieuw."; return; }
+  if (session) { if (tijdOm) $("#sv-fb").textContent = "Tijd om."; $("#sv-eval").click(); }
+  else { $("#sv-fb").className = "small"; $("#sv-fb").textContent = (tijdOm ? "Tijd om. " : "") + "Bekijk het modelantwoord en vink hieronder zelf af wat je gezegd hebt."; }
+}
+$("#sv-start").addEventListener("click", startAntwoord);
 function showSteps(st){
   const names = {knuffel:"Knuffel",brug:"Brug",counter:"Counter",afspraak:"Afspraak"};
   $("#sv-steps").replaceChildren(...Object.keys(names).map(k => {
@@ -622,7 +641,8 @@ $("#sv-saveself").addEventListener("click", () => {
 });
 $("#sv-eval").addEventListener("click", async () => {
   const o = cur(), ans = $("#sv-ans").value.trim();
-  if (!ans) { $("#sv-fb").className = "small"; $("#sv-fb").textContent = "Typ eerst je antwoord, zoals je het zou zeggen."; $("#sv-ans").focus(); return; }
+  if (!ans) { $("#sv-fb").className = "small"; $("#sv-fb").textContent = "Spreek of typ eerst je antwoord, zoals je het aan de telefoon zou zeggen."; $("#sv-ans").focus(); return; }
+  if (spraak.sessie) stopLuisteren();
   stopTimer();
   const btn = $("#sv-eval"); btn.disabled = true;
   $("#sv-fb").className = "thinking small"; $("#sv-fb").textContent = "Claude luistert mee…";
@@ -677,52 +697,85 @@ function spreek(tekst, g){
       const v = kiesStem(g); if (v) u.voice = v;
       u.lang = v?.lang || "nl-BE"; u.rate = 1.05;
       if (!v || !(g === "v" ? /dena|ellen|claire|fenna|colette|hanna|lotte|female/i : /arnaud|xander|maarten|frank|male/i).test(v.name)) u.pitch = g === "v" ? 1.15 : 0.85;
-      u.onend = u.onerror = () => resolve();
+      let klaar = false; const einde = () => { if (!klaar) { klaar = true; resolve(); } };
+      u.onend = u.onerror = einde;
+      setTimeout(einde, 2500 + tekst.length * 90); // vangnet: sommige browsers melden het einde niet
       speechSynthesis.speak(u);
     } catch { resolve(); }
   });
 }
-function stopLuisteren(){ try { spraak.rec?.abort(); } catch {} spraak.rec = null; document.querySelectorAll(".mic").forEach(b => b.setAttribute("aria-pressed", "false")); }
-function luister(veld, knop){
+function stopLuisteren(){ spraak.sessie?.stop(); }
+// Neemt op tot je zelf stopt (of na een stilte, of na de maximumtijd). Chrome stopt soms vanzelf
+// na een korte pauze; dan starten we stil opnieuw, zodat je rustig kan nadenken tussen je zinnen.
+function luister(veld, knop, { stilte = 0, max = 60000 } = {}){
   return new Promise(resolve => {
     if (!SR) return resolve("");
-    stopLuisteren();
-    const rec = new SR(); spraak.rec = rec;
-    rec.lang = "nl-BE"; rec.interimResults = true; rec.continuous = false; rec.maxAlternatives = 1;
-    const basis = veld.value ? veld.value.trim() + " " : "";
-    let finaal = "";
-    knop.setAttribute("aria-pressed", "true");
-    rec.onresult = e => {
-      let tussen = "";
-      for (let i = e.resultIndex; i < e.results.length; i++) { const t = e.results[i][0].transcript; if (e.results[i].isFinal) finaal += t; else tussen += t; }
-      veld.value = basis + finaal + tussen;
+    spraak.sessie?.stop();
+    const sessie = { actief: true, stoppen: false, finaal: "", tussen: "", basis: veld.value ? veld.value.trim() + " " : "", rec: null, tStil: null, tMax: null, tNood: null };
+    spraak.sessie = sessie;
+    if (knop) { knop.setAttribute("aria-pressed", "true"); const l = knop.querySelector("span"); if (l) l.textContent = "Klaar"; }
+    const afronden = () => {
+      if (!sessie.actief) return;
+      sessie.actief = false;
+      clearTimeout(sessie.tStil); clearTimeout(sessie.tMax); clearTimeout(sessie.tNood);
+      if (knop) { knop.setAttribute("aria-pressed", "false"); const l = knop.querySelector("span"); if (l) l.textContent = "Spreek"; }
+      if (spraak.sessie === sessie) spraak.sessie = null;
+      const tekst = (sessie.finaal + " " + sessie.tussen).replace(/\s+/g, " ").trim();
+      veld.value = (sessie.basis + tekst).trim();
+      resolve(tekst);
     };
-    rec.onerror = e => { if (e.error === "not-allowed" || e.error === "service-not-allowed") $("#rs-voicenote").textContent = "Geef de browser toegang tot je microfoon om te spreken."; };
-    rec.onend = () => { knop.setAttribute("aria-pressed", "false"); if (spraak.rec === rec) spraak.rec = null; resolve(finaal.trim()); };
-    try { rec.start(); } catch { knop.setAttribute("aria-pressed", "false"); resolve(""); }
+    sessie.stop = () => {
+      if (!sessie.actief || sessie.stoppen) return;
+      sessie.stoppen = true;
+      try { sessie.rec?.stop(); } catch { afronden(); }
+      sessie.tNood = setTimeout(afronden, 1500); // vangnet als de browser niet meer antwoordt
+    };
+    const start = () => {
+      const rec = new SR(); sessie.rec = rec;
+      rec.lang = "nl-BE"; rec.interimResults = true; rec.continuous = true; rec.maxAlternatives = 1;
+      rec.onresult = e => {
+        let tussen = "";
+        for (let i = e.resultIndex; i < e.results.length; i++) {
+          const t = e.results[i][0].transcript;
+          if (e.results[i].isFinal) sessie.finaal += t + " "; else tussen += t;
+        }
+        sessie.tussen = tussen;
+        veld.value = (sessie.basis + sessie.finaal + tussen).replace(/\s+/g, " ");
+        if (stilte) { clearTimeout(sessie.tStil); sessie.tStil = setTimeout(() => sessie.stop(), stilte); }
+      };
+      rec.onerror = e => {
+        if (e.error === "not-allowed" || e.error === "service-not-allowed") {
+          $("#rs-voicenote").textContent = "Geef de browser toegang tot je microfoon om te spreken.";
+          sessie.stoppen = true;
+        }
+      };
+      rec.onend = () => {
+        if (sessie.actief && !sessie.stoppen) { sessie.finaal += sessie.tussen ? sessie.tussen + " " : ""; sessie.tussen = ""; try { start(); } catch { afronden(); } }
+        else afronden();
+      };
+      rec.start();
+    };
+    try { start(); } catch { afronden(); return; }
+    sessie.tMax = setTimeout(() => sessie.stop(), max);
   });
 }
 if (SR) {
-  $("#rs-mic").hidden = false; $("#sv-mic").hidden = false;
+  $("#rs-mic").hidden = false;
 } else {
   $("#rs-hf").closest("label").hidden = true;
   $("#rs-voicenote").textContent = "Spreken werkt in Chrome of Edge. In deze browser typ je je antwoord.";
 }
 if (!tts) $("#rs-tts").closest("label").hidden = true;
-$("#sv-mic").addEventListener("click", async () => {
-  if (spraak.rec) { stopLuisteren(); return; }
-  await luister($("#sv-ans"), $("#sv-mic"));
-});
 $("#rs-mic").addEventListener("click", async () => {
-  if (spraak.rec) { stopLuisteren(); return; }
+  if (spraak.sessie) { stopLuisteren(); return; }
   if (!rs.live || rs.busy) return;
   try { speechSynthesis.cancel(); } catch {}
-  const t = await luister($("#rs-input"), $("#rs-mic"));
+  const t = await luister($("#rs-input"), $("#rs-mic"), { max: 90000 });
   if (t && rs.live && !rs.busy) send();
 });
 async function beurtVanBeller(){
   if (!SR || !$("#rs-hf").checked || !rs.live || rs.busy) return;
-  const t = await luister($("#rs-input"), $("#rs-mic"));
+  const t = await luister($("#rs-input"), $("#rs-mic"), { stilte: 2500, max: 90000 });
   if (t && rs.live && !rs.busy) send();
 }
 const LVL = {basis:"Basis", gemiddeld:"Gemiddeld", moeilijk:"Moeilijk", warm:"Warm gesprek"};
