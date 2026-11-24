@@ -705,59 +705,106 @@ function spreek(tekst, g){
   });
 }
 function stopLuisteren(){ spraak.sessie?.stop(); }
+function stopLuisterenMeteen(){ spraak.sessie?.stop(true); }
 // Neemt op tot je zelf stopt (of na een stilte, of na de maximumtijd). Chrome stopt soms vanzelf
 // na een korte pauze; dan starten we stil opnieuw, zodat je rustig kan nadenken tussen je zinnen.
-function luister(veld, knop, { stilte = 0, max = 60000 } = {}){
+// Elke opname (sessie) is volledig afgeschermd: zodra ze afgerond is, kunnen late meldingen van de
+// browser het tekstvak niet meer wijzigen, en de microfoon wordt hard afgesloten.
+function transcript(results){
+  // Bouwt de tekst opnieuw op uit alle resultaten van deze opname (niet stap voor stap optellen),
+  // en vangt browsers op die elk resultaat herhalen met de vorige tekst ervoor.
+  const finaal = [], tussen = [];
+  for (let i = 0; i < results.length; i++) {
+    const t = (results[i][0]?.transcript || "").trim(); if (!t) continue;
+    if (results[i].isFinal) {
+      const vorige = finaal[finaal.length - 1];
+      if (vorige && t.toLowerCase().startsWith(vorige.toLowerCase())) finaal[finaal.length - 1] = t;
+      else finaal.push(t);
+    } else tussen.push(t);
+  }
+  return { finaal: finaal.join(" "), tussen: tussen.join(" ") };
+}
+function luister(veld, knop, { stilte = 0, max = 60000, leeg = false } = {}){
   return new Promise(resolve => {
     if (!SR) return resolve("");
-    spraak.sessie?.stop();
-    const sessie = { actief: true, stoppen: false, finaal: "", tussen: "", basis: veld.value ? veld.value.trim() + " " : "", rec: null, tStil: null, tMax: null, tNood: null };
+    spraak.sessie?.stop(true);
+    if (leeg) veld.value = "";
+    const sessie = { actief: true, stoppen: false, eerder: "", huidig: { finaal: "", tussen: "" }, basis: veld.value ? veld.value.trim() + " " : "", rec: null, tStil: null, tMax: null, tNood: null };
     spraak.sessie = sessie;
+    const tekstNu = () => [sessie.eerder, sessie.huidig.finaal, sessie.huidig.tussen].filter(Boolean).join(" ").replace(/\s+/g, " ").trim();
     if (knop) { knop.setAttribute("aria-pressed", "true"); const l = knop.querySelector("span"); if (l) l.textContent = "Klaar"; }
     const afronden = () => {
       if (!sessie.actief) return;
       sessie.actief = false;
       clearTimeout(sessie.tStil); clearTimeout(sessie.tMax); clearTimeout(sessie.tNood);
+      try { sessie.rec?.abort(); } catch {}
       if (knop) { knop.setAttribute("aria-pressed", "false"); const l = knop.querySelector("span"); if (l) l.textContent = "Spreek"; }
       if (spraak.sessie === sessie) spraak.sessie = null;
-      const tekst = (sessie.finaal + " " + sessie.tussen).replace(/\s+/g, " ").trim();
+      const tekst = tekstNu();
       veld.value = (sessie.basis + tekst).trim();
       resolve(tekst);
     };
-    sessie.stop = () => {
-      if (!sessie.actief || sessie.stoppen) return;
+    sessie.stop = (meteen) => {
+      if (!sessie.actief) return;
+      if (meteen) return afronden();
+      if (sessie.stoppen) return;
       sessie.stoppen = true;
       try { sessie.rec?.stop(); } catch { afronden(); }
-      sessie.tNood = setTimeout(afronden, 1500); // vangnet als de browser niet meer antwoordt
+      sessie.tNood = setTimeout(afronden, 1200); // vangnet als de browser niet meer antwoordt
     };
     const start = () => {
       const rec = new SR(); sessie.rec = rec;
       rec.lang = "nl-BE"; rec.interimResults = true; rec.continuous = true; rec.maxAlternatives = 1;
+      const vanMij = () => sessie.actief && sessie.rec === rec;
       rec.onresult = e => {
-        let tussen = "";
-        for (let i = e.resultIndex; i < e.results.length; i++) {
-          const t = e.results[i][0].transcript;
-          if (e.results[i].isFinal) sessie.finaal += t + " "; else tussen += t;
-        }
-        sessie.tussen = tussen;
-        veld.value = (sessie.basis + sessie.finaal + tussen).replace(/\s+/g, " ");
+        if (!vanMij()) return;
+        sessie.huidig = transcript(e.results);
+        veld.value = (sessie.basis + tekstNu()).trim();
         if (stilte) { clearTimeout(sessie.tStil); sessie.tStil = setTimeout(() => sessie.stop(), stilte); }
       };
       rec.onerror = e => {
+        if (!vanMij()) return;
         if (e.error === "not-allowed" || e.error === "service-not-allowed") {
           $("#rs-voicenote").textContent = "Geef de browser toegang tot je microfoon om te spreken.";
-          sessie.stoppen = true;
+          afronden();
         }
       };
       rec.onend = () => {
-        if (sessie.actief && !sessie.stoppen) { sessie.finaal += sessie.tussen ? sessie.tussen + " " : ""; sessie.tussen = ""; try { start(); } catch { afronden(); } }
-        else afronden();
+        if (!vanMij()) return;
+        if (!sessie.stoppen) {
+          // de browser stopte zelf: bewaar wat er al was en luister verder
+          sessie.eerder = [sessie.eerder, sessie.huidig.finaal, sessie.huidig.tussen].filter(Boolean).join(" ");
+          sessie.huidig = { finaal: "", tussen: "" };
+          try { start(); } catch { afronden(); }
+        } else afronden();
       };
       rec.start();
     };
     try { start(); } catch { afronden(); return; }
     sessie.tMax = setTimeout(() => sessie.stop(), max);
   });
+}
+// Wacht tot de eigenaar uitgesproken is, zodat de microfoon zijn stem niet opvangt
+async function wachtTotStil(){
+  if (!tts) return;
+  const t0 = Date.now();
+  while (Date.now() - t0 < 20000) {
+    let bezig = false; try { bezig = speechSynthesis.speaking || speechSynthesis.pending; } catch {}
+    if (!bezig) break;
+    await new Promise(r => setTimeout(r, 120));
+  }
+  await new Promise(r => setTimeout(r, 400));
+}
+// Haalt de laatste zin van de eigenaar uit het transcript als de microfoon die toch opving (echo)
+function zonderEcho(tekst){
+  const laatste = [...rs.beurten].reverse().find(b => b.wie === "eigenaar")?.tekst || "";
+  const norm = x => x.toLowerCase().replace(/[^\p{L}\p{N}\s]/gu, " ").split(/\s+/).filter(Boolean);
+  const woorden = norm(laatste); if (woorden.length < 4) return tekst;
+  const echo = new Set(); for (let i = 0; i + 3 < woorden.length; i++) echo.add(woorden.slice(i, i + 4).join(" "));
+  const t = tekst.split(/\s+/), tn = norm(tekst), weg = new Array(tn.length).fill(false);
+  for (let i = 0; i + 3 < tn.length; i++) if (echo.has(tn.slice(i, i + 4).join(" "))) for (let k = i; k < i + 4; k++) weg[k] = true;
+  if (!weg.some(Boolean) || tn.length !== t.length) return tekst;
+  return t.filter((_, i) => !weg[i]).join(" ").trim();
 }
 if (SR) {
   $("#rs-mic").hidden = false;
@@ -770,13 +817,22 @@ $("#rs-mic").addEventListener("click", async () => {
   if (spraak.sessie) { stopLuisteren(); return; }
   if (!rs.live || rs.busy) return;
   try { speechSynthesis.cancel(); } catch {}
-  const t = await luister($("#rs-input"), $("#rs-mic"), { max: 90000 });
-  if (t && rs.live && !rs.busy) send();
+  await new Promise(r => setTimeout(r, 250));
+  const t = await luister($("#rs-input"), $("#rs-mic"), { max: 90000, leeg: true });
+  rondBeurtAf(t);
 });
 async function beurtVanBeller(){
   if (!SR || !$("#rs-hf").checked || !rs.live || rs.busy) return;
-  const t = await luister($("#rs-input"), $("#rs-mic"), { stilte: 2500, max: 90000 });
-  if (t && rs.live && !rs.busy) send();
+  await wachtTotStil();
+  if (!rs.live || rs.busy || spraak.sessie) return;
+  const t = await luister($("#rs-input"), $("#rs-mic"), { stilte: 2500, max: 90000, leeg: true });
+  rondBeurtAf(t);
+}
+function rondBeurtAf(t){
+  const schoon = zonderEcho(t || "");
+  $("#rs-input").value = schoon;
+  if (schoon && rs.live && !rs.busy) send();
+  else if (!schoon && t && rs.live) $("#rs-voicenote").textContent = "De microfoon ving vooral de stem van de eigenaar op. Gebruik een headset of zet het geluid wat zachter.";
 }
 const LVL = {basis:"Basis", gemiddeld:"Gemiddeld", moeilijk:"Moeilijk", warm:"Warm gesprek"};
 function renderCases(){
@@ -858,7 +914,7 @@ $("#rs-input").addEventListener("keydown", e => { if (e.key === "Enter" && !e.sh
 $("#rs-stop").addEventListener("click", () => rs.ctl?.abort());
 $("#rs-end").addEventListener("click", () => { if (rs.busy) rs.ctl?.abort(); if (rs.live) bubble("sys", "Je hebt opgehangen."); endCall(true); });
 async function endCall(evaluate){
-  stopLuisteren(); try { speechSynthesis.cancel(); } catch {}
+  stopLuisterenMeteen(); try { speechSynthesis.cancel(); } catch {}
   clearInterval(rs.tick); setLive(false);
   // een onbeantwoorde laatste beurt van de beller hoort niet in de beoordeling
   if (rs.beurten.length && rs.beurten[rs.beurten.length - 1].wie === "beller" && rs.beurten.length % 2 === 0) rs.beurten.pop();
